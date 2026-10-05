@@ -1,44 +1,44 @@
-# ADR-014: Procesar y transmitir comprobantes inmediatamente sin acoplar la latencia HTTP a la autorización del SRI
+# ADR-014: Process and transmit fiscal documents immediately without coupling HTTP latency to SRI authorization
 
-- Estado: Accepted
-- Fecha: 2026-10-04
-- Decisores: Equipo Emitta
+- Status: Accepted
+- Date: 2026-10-04
+- Decision makers: Emitta team
 
-## Contexto
+## Context
 
-Desde el 1 de enero de 2026 el SRI exige transmisión inmediata de comprobantes de venta, retención y documentos complementarios.
+Starting January 1, 2026, the SRI requires immediate transmission of electronic sales documents, withholding documents, and complementary documents.
 
-Emitta no puede tratar el procesamiento fiscal como un trabajo batch diferido.
+Emitta therefore cannot treat fiscal processing as delayed batch work.
 
-Al mismo tiempo, el SRI es una dependencia externa cuya latencia y disponibilidad no están bajo control de Emitta.
+At the same time, the SRI is an external dependency whose latency and availability are outside Emitta's operational control.
 
-Mantener una petición HTTP abierta mientras Emitta:
+Keeping an HTTP request open while Emitta:
 
-1. persiste el comprobante;
-2. genera XML;
-3. firma;
-4. transmite al SRI;
-5. espera autorización;
-6. ejecuta reintentos;
+1. persists the document;
+2. generates XML;
+3. signs the document;
+4. transmits it to the SRI;
+5. waits for authorization;
+6. executes retries;
 
-acoplaría directamente la disponibilidad y latencia de la API a la infraestructura del SRI.
+would directly couple API availability and client latency to SRI infrastructure.
 
-## Decisión
+## Decision
 
-Emitta utilizará procesamiento asíncrono inmediato para los comprobantes fiscales.
+Emitta will use immediate asynchronous processing for fiscal documents.
 
-Flujo objetivo:
+Target flow:
 
 ```text
-Cliente
+Client
   |
   | POST /api/v1/invoices
   v
 Emitta API
   |
-  | validar
-  | persistir documento
-  | persistir evento Outbox
+  | validate
+  | persist document
+  | persist Outbox event
   v
 PostgreSQL
   |
@@ -49,31 +49,31 @@ Outbox Publisher
   v
 RabbitMQ
   |
-  | consumo inmediato
+  | immediate consumption
   v
 Fiscal Worker
   |
-  | generar XML
-  | firmar
-  | transmitir al SRI
-  | actualizar resultado
+  | generate XML
+  | sign
+  | transmit to SRI
+  | update result
   v
 SRI
 ```
 
-RabbitMQ se utilizará para desacoplar el procesamiento, no para retrasarlo deliberadamente.
+RabbitMQ will be used to decouple processing, not to intentionally delay fiscal transmission.
 
-En operación normal, los mensajes deben comenzar a procesarse inmediatamente o casi inmediatamente.
+Under normal operating conditions, messages must begin processing immediately or near-immediately.
 
-La API podrá responder inicialmente con:
+The API may initially respond with:
 
 ```text
 202 Accepted
 ```
 
-y un recurso que represente el estado actual del documento.
+and a resource representing the current document status.
 
-Ejemplo:
+Example:
 
 ```json
 {
@@ -82,11 +82,11 @@ Ejemplo:
 }
 ```
 
-Los clientes podrán consultar el estado y, posteriormente, recibir webhooks.
+Clients may query the document status and, later, receive webhooks when the state changes.
 
-## Ciclo de vida inicial
+## Initial lifecycle
 
-Dirección inicial:
+Current direction:
 
 ```text
 RECEIVED
@@ -111,85 +111,85 @@ SUBMITTED
 AUTHORIZED
 ```
 
-La máquina de estados definitiva se formalizará durante el diseño del dominio.
+The final state machine will be formally defined during domain modeling.
 
-## Razones
+## Reasons
 
-- Cumplir con la obligación de transmisión inmediata.
-- Evitar batching o retrasos deliberados.
-- Evitar que la latencia del SRI determine la latencia de la API.
-- Aislar fallas externas.
-- Permitir reintentos controlados.
-- Escalar workers independientemente del tráfico HTTP.
-- Facilitar pruebas de carga y spike.
+- Comply with the immediate-transmission requirement.
+- Avoid batching or deliberate delays.
+- Prevent SRI latency from defining API latency.
+- Isolate external failures.
+- Enable controlled retries.
+- Scale workers independently from HTTP traffic.
+- Support load and spike testing requirements.
 
-## Interpretación arquitectónica
+## Architectural interpretation
 
-“Transmisión inmediata” se interpreta como el inicio del procesamiento y transmisión sin demoras deliberadas.
+“Immediate transmission” is interpreted as beginning processing and transmission without deliberate delay.
 
-No se interpreta como obligación de mantener síncrona la petición HTTP hasta completar la autorización del SRI.
+It is not interpreted as a requirement to keep the original HTTP request synchronous until SRI authorization is complete.
 
-Si una futura norma o ficha técnica exige expresamente lo contrario, este ADR deberá ser reemplazado.
+If future SRI regulation or technical specifications explicitly require different behavior, this ADR must be superseded.
 
-## Alternativas consideradas
+## Alternatives considered
 
-### Procesamiento totalmente síncrono
+### Fully synchronous processing
 
 ```text
 HTTP request
    |
 XML
    |
-firma
+signature
    |
 SRI
    |
-autorización
+authorization
    |
 HTTP response
 ```
 
-Ventajas:
+Advantages:
 
-- El cliente podría recibir el resultado final en una sola llamada.
+- The client could receive the final result in a single request.
 
-Desventajas:
+Disadvantages:
 
-- La latencia depende del SRI.
-- Una caída externa consume recursos de la API.
-- Reintentos complejos.
-- Peor comportamiento ante picos.
-- Riesgo de fallas en cascada.
+- Latency depends directly on the SRI.
+- External outages consume API resources.
+- Retry behavior becomes more complex.
+- Poorer behavior under traffic spikes.
+- Higher risk of cascading failures.
 
-Rechazada como arquitectura principal.
+Rejected as the primary architecture.
 
-### Procesamiento batch diferido
+### Delayed batch processing
 
-Ventajas:
+Advantages:
 
-- Implementación sencilla.
+- Simple implementation.
 
-Desventajas:
+Disadvantages:
 
-- Contradice el objetivo de transmisión inmediata.
+- Conflicts with the immediate-transmission objective.
 
-Rechazada.
+Rejected.
 
-### Publicar directamente en RabbitMQ después del commit
+### Publish directly to RabbitMQ after the database commit
 
-Ventajas:
+Advantages:
 
-- Más simple que Outbox.
+- Simpler than an Outbox.
 
-Desventajas:
+Disadvantages:
 
-- Problema de dual write entre PostgreSQL y RabbitMQ.
+- Creates a PostgreSQL/RabbitMQ dual-write consistency problem.
 
-Rechazada en favor de Transactional Outbox.
+Rejected in favor of the Transactional Outbox pattern.
 
-## Objetivos internos de rendimiento
+## Internal performance objectives
 
-Los siguientes valores son SLO internos de ingeniería, no plazos legales del SRI:
+The following values are internal engineering SLOs, not legal SRI deadlines:
 
 ```text
 API acknowledgement p95:              < 500 ms
@@ -200,11 +200,11 @@ Sustained-load API error rate:         < 1%
 Normal queue backlog:                  ~ 0
 ```
 
-Estos valores deberán validarse con k6 y ajustarse con evidencia.
+These targets must be validated with k6 and adjusted using evidence.
 
-## Observabilidad requerida
+## Required observability
 
-El sistema deberá registrar timestamps como:
+The system should capture timestamps such as:
 
 ```text
 received_at
@@ -216,7 +216,7 @@ authorized_at
 failed_at
 ```
 
-Métricas derivadas:
+Derived metrics:
 
 ```text
 request_to_queue_duration
@@ -227,7 +227,7 @@ sri_response_duration
 authorization_duration
 ```
 
-Métricas operativas:
+Operational metrics:
 
 ```text
 queue depth
@@ -238,11 +238,11 @@ SRI error rate
 SRI circuit-breaker state
 ```
 
-## Manejo de fallas
+## Failure handling
 
-### Fallo temporal del SRI o red
+### Temporary SRI or network failure
 
-Flujo esperado:
+Expected flow:
 
 ```text
 SIGNED
@@ -251,89 +251,89 @@ SUBMISSION_FAILED
   |
 RETRY_PENDING
   |
-retry con backoff limitado
+bounded retry with backoff
 ```
 
-Los reintentos deberán ser acotados.
+Retries must be bounded.
 
-Resilience4j y RabbitMQ no deberán producir retry storms.
+Resilience4j and RabbitMQ must not create retry storms.
 
-### Error fiscal permanente
+### Permanent fiscal validation error
 
-Errores de validación definitivos no deben reintentarse indefinidamente.
+Definitive validation errors must not be retried indefinitely.
 
-El documento pasará a un estado explícito de rechazo/error y se conservará la respuesta del SRI.
+The document will move to an explicit rejected/error state and the SRI response will be preserved for diagnosis.
 
-### Caída de RabbitMQ
+### RabbitMQ outage
 
-Transactional Outbox conservará la intención de procesamiento en PostgreSQL hasta que la publicación pueda realizarse.
+The Transactional Outbox will preserve processing intent in PostgreSQL until publication can succeed.
 
-## Idempotencia
+## Idempotency
 
-El modelo asíncrono exige idempotencia.
+The asynchronous model requires idempotency.
 
-Como mínimo:
+At minimum:
 
-- el cliente utilizará `Idempotency-Key`;
-- PostgreSQL impondrá unicidad por tenant y clave;
-- los consumidores RabbitMQ serán idempotentes;
-- una entrega duplicada del broker no podrá emitir dos comprobantes.
+- the client will use an `Idempotency-Key`;
+- PostgreSQL will enforce uniqueness by tenant and idempotency key;
+- RabbitMQ consumers will be idempotent;
+- duplicate broker delivery must not result in duplicate fiscal issuance.
 
-## Consecuencias
+## Consequences
 
-### Positivas
+### Positive
 
-- Respuesta HTTP rápida y predecible.
-- Procesamiento fiscal inmediato.
-- Fallas del SRI aisladas.
-- Reintentos controlados.
-- Workers escalables.
-- La profundidad de cola se convierte en un indicador operativo claro.
+- Fast and predictable HTTP acknowledgement.
+- Immediate fiscal processing.
+- SRI failures are isolated.
+- Controlled retries.
+- Independently scalable workers.
+- Queue depth becomes a clear operational signal.
 
-### Negativas
+### Negative
 
-- El cliente debe comprender estados asíncronos.
-- Existe consistencia eventual.
-- Se deben diseñar consultas de estado y webhooks.
-- La cola debe monitorizarse.
-- La idempotencia es obligatoria.
+- Clients must understand asynchronous states.
+- Eventual consistency is introduced.
+- Status-query and webhook behavior must be designed.
+- Queue health must be monitored.
+- Idempotency becomes mandatory.
 
-## Riesgos
+## Risks
 
-### Acumulación de cola
+### Queue backlog
 
-Una cola creciente podría contradecir el objetivo de transmisión inmediata.
+A growing queue could conflict with the immediate-transmission objective.
 
-Mitigación:
+Mitigation:
 
-- alertas por profundidad y antigüedad;
-- escalamiento de consumidores;
-- SLO de edad de mensajes;
-- pruebas de capacidad.
+- alerts on queue depth and message age;
+- consumer scaling;
+- queue-age SLO;
+- capacity testing.
 
 ### Retry storm
 
-Mitigación:
+Mitigation:
 
-- reintentos limitados;
+- bounded retries;
 - backoff;
 - Circuit Breaker;
 - DLQ;
-- métricas.
+- metrics.
 
-### Cliente interpreta `202` como “autorizado”
+### Client interprets `202` as “authorized”
 
-Mitigación:
+Mitigation:
 
-- contrato OpenAPI explícito;
-- estados claros;
-- documentación de que `202` significa aceptado para procesamiento, no autorizado por el SRI.
+- explicit OpenAPI contract;
+- clear state names;
+- documentation that `202` means accepted for processing, not authorized by the SRI.
 
-## Implicaciones para pruebas
+## Testing implications
 
-Las pruebas de carga deben medir principalmente la infraestructura de Emitta y no ejecutar carga masiva contra infraestructura externa del SRI.
+Load tests must primarily measure Emitta infrastructure and must not generate massive load against external SRI infrastructure.
 
-Para k6:
+For k6:
 
 ```text
 k6
@@ -345,24 +345,24 @@ Emitta
 Fake / Mock TaxAuthorityGateway
 ```
 
-Las pruebas reales contra el ambiente de certificación del SRI serán pruebas de integración separadas.
+Real tests against the SRI certification/test environment will be separate integration tests.
 
-## Evolución futura
+## Future evolution
 
-Si las mediciones muestran que ciertos flujos pueden ofrecer una espera síncrona acotada sin comprometer disponibilidad, Emitta podría ofrecer posteriormente un modo opcional, por ejemplo:
+If measurements show that specific flows can safely provide a bounded synchronous wait without compromising availability, Emitta may later offer an optional mode, for example:
 
 ```text
 POST /invoices?waitForAuthorization=2s
 ```
 
-Ese modo sería una optimización sobre el flujo asíncrono, no su reemplazo.
+That mode would be an optimization on top of the asynchronous source-of-truth workflow, not a replacement for it.
 
-Cualquier cambio del modelo principal requerirá un nuevo ADR.
+Any change to the primary processing model requires a new ADR.
 
-## Referencias
+## References
 
-- Comunicado del SRI del 30 de diciembre de 2025 sobre transmisión inmediata obligatoria desde el 1 de enero de 2026.
-- Documentación técnica vigente de facturación electrónica del SRI.
-- ADR-006: RabbitMQ para procesamiento asíncrono.
+- SRI announcement dated December 30, 2025 regarding mandatory immediate transmission starting January 1, 2026.
+- Current SRI electronic invoicing technical documentation.
+- ADR-006: RabbitMQ for asynchronous fiscal processing.
 - ADR-007: Transactional Outbox.
-- ADR-009: Resilience4j para resiliencia frente al SRI.
+- ADR-009: Resilience4j for SRI integration resilience.

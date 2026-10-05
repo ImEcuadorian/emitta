@@ -1,27 +1,27 @@
-# ADR-013: Registrar e identificar a Emitta como proveedor de facturación electrónica
+# ADR-013: Register and identify Emitta as an electronic invoicing service provider
 
-- Estado: Accepted
-- Fecha: 2026-10-04
-- Decisores: Equipo Emitta
+- Status: Accepted
+- Date: 2026-10-04
+- Decision makers: Emitta team
 
-## Contexto
+## Context
 
-Emitta está concebido como una plataforma B2B que presta infraestructura de facturación electrónica a terceros, como POS, ERP, SaaS, e-commerce y aplicaciones empresariales.
+Emitta is designed as a B2B platform that provides electronic invoicing infrastructure to third-party systems such as POS platforms, ERPs, SaaS products, e-commerce platforms, and enterprise applications.
 
-En 2026 el SRI estableció requisitos formales para los proveedores de sistemas informáticos o servicios de facturación electrónica. La regulación exige que estos proveedores incorporen en su RUC un establecimiento y una actividad económica exclusivos para esta actividad. Además, cuando un emisor utilice un sistema provisto por un tercero, el comprobante deberá incluir el RUC del proveedor en la información adicional conforme a la ficha técnica vigente.
+In 2026, the Ecuadorian Internal Revenue Service (SRI) established formal registration requirements for providers of electronic invoicing systems or services. The regulation requires these providers to register, in their RUC, an establishment and an economic activity dedicated exclusively to this activity. In addition, when an issuer uses an electronic invoicing system provided by a third party, the electronic document must include the provider's RUC in the additional information section, according to the current SRI technical specification.
 
-Esto introduce dos identidades distintas dentro del dominio de Emitta:
+This introduces two legally and technically distinct identities inside the Emitta domain:
 
-1. El contribuyente que emite el comprobante.
-2. El proveedor tecnológico que presta el servicio de facturación.
+1. The taxpayer that issues the fiscal document.
+2. The technology provider that supplies the electronic invoicing service.
 
-Estas identidades no deben confundirse.
+These identities must never be confused.
 
-## Decisión
+## Decision
 
-Emitta modelará la identidad del proveedor de facturación de forma separada de los contribuyentes pertenecientes a cada tenant.
+Emitta will model the invoicing provider identity separately from taxpayer identities owned by tenants.
 
-Modelo conceptual:
+Conceptual model:
 
 ```text
 Platform
@@ -33,7 +33,7 @@ Platform
     └── regulatoryStatus
 ```
 
-Los datos del emisor permanecerán en el contexto del tenant:
+Issuer data will remain within the tenant context:
 
 ```text
 Tenant
@@ -46,91 +46,91 @@ Tenant
     └── documents
 ```
 
-El RUC del proveedor será configuración controlada por la plataforma y no podrá ser enviado o reemplazado libremente por los clientes de la API.
+The provider RUC will be controlled by Emitta platform configuration and must not be freely supplied or overridden by API clients.
 
-Cuando la ficha técnica vigente del SRI lo exija, Emitta incorporará el RUC registrado del proveedor en el comprobante electrónico.
+When required by the current SRI technical specification, Emitta will include the registered provider RUC in the generated electronic document.
 
-## Razones
+## Reasons
 
-- Evitar confundir el RUC del emisor con el RUC del proveedor tecnológico.
-- Cumplir con el registro formal exigido por el SRI.
-- Evitar que un cliente suplante o reemplace la identidad del proveedor.
-- Centralizar información regulatoria de la plataforma.
-- Mantener separados los datos de plataforma y los datos multi-tenant.
-- Reflejar correctamente el modelo de negocio B2B de Emitta.
+- Prevent confusion between the issuer RUC and the technology provider RUC.
+- Support compliance with the formal SRI provider-registration requirement.
+- Prevent clients from spoofing or replacing the provider identity.
+- Centralize platform-level regulatory information.
+- Keep platform data separate from multi-tenant customer data.
+- Accurately represent Emitta's B2B business model.
 
-## Alternativas consideradas
+## Alternatives considered
 
-### Guardar el RUC del proveedor dentro de cada tenant
+### Store the provider RUC inside every tenant
 
-Ventajas:
+Advantages:
 
-- Acceso directo desde los flujos del tenant.
+- Direct access from tenant workflows.
 
-Desventajas:
+Disadvantages:
 
-- Duplica información de plataforma.
-- Puede generar valores inconsistentes entre tenants.
-- Permite modificaciones indebidas.
-- Modela incorrectamente un dato de plataforma como si perteneciera al cliente.
+- Duplicates platform-level information.
+- Can create inconsistent values across tenants.
+- Allows accidental or unauthorized modification.
+- Incorrectly models platform data as customer-owned data.
 
-Rechazada.
+Rejected.
 
-### Permitir que cada solicitud envíe `providerRuc`
+### Allow each API request to submit `providerRuc`
 
-Ventajas:
+Advantages:
 
 - Flexible.
 
-Desventajas:
+Disadvantages:
 
-- Riesgo de suplantación.
-- Reduce auditabilidad.
-- Es innecesario porque la identidad del proveedor ya es conocida por Emitta.
+- Creates a spoofing risk.
+- Reduces auditability.
+- Is unnecessary because the provider identity is already known by Emitta.
 
-Rechazada.
+Rejected.
 
-### Hardcodear el RUC en el código Java
+### Hardcode the provider RUC in Java source code
 
-Ventajas:
+Advantages:
 
-- Implementación trivial.
+- Trivial implementation.
 
-Desventajas:
+Disadvantages:
 
-- Mezcla configuración regulatoria con código fuente.
-- Dificulta cambios entre ambientes.
-- No es apropiado para producción.
+- Mixes regulatory configuration with source code.
+- Makes environment changes harder.
+- Is not appropriate for production configuration.
 
-Rechazada.
+Rejected.
 
-## Consecuencias
+## Consequences
 
-### Positivas
+### Positive
 
-- Separación clara entre emisor y proveedor.
-- Consistencia de la identidad del proveedor.
-- Mayor auditabilidad.
-- Menor riesgo de manipulación desde clientes externos.
-- Facilita cambios regulatorios.
+- Clear separation between issuer and provider identities.
+- Consistent provider identity across all tenants.
+- Better auditability.
+- Lower risk of manipulation by external clients.
+- Easier regulatory updates.
 
-### Negativas
+### Negative
 
-- Emitta debe gestionar su propia configuración regulatoria.
-- La preparación para producción incluye un proceso externo de registro ante el SRI.
-- Debe existir validación de configuración por ambiente.
+- Emitta must manage its own provider regulatory configuration.
+- Production readiness includes a regulatory registration process outside the software itself.
+- Configuration must be validated per environment.
 
-## Consideraciones de seguridad
+## Security considerations
 
-El RUC del proveedor no necesariamente es secreto, pero sí es configuración confiable de plataforma.
+The provider RUC is not necessarily secret, but it is trusted platform configuration.
 
-Solo procesos administrativos autorizados podrán modificar la identidad del proveedor.
+Only authorized platform administration processes may change the provider identity.
 
-La API no deberá aceptar una identidad de proveedor suministrada por el cliente como fuente de verdad.
+The API must never treat a client-supplied provider identity as authoritative.
 
-## Implicaciones de dominio
+## Domain implications
 
-El modelo deberá distinguir:
+The domain model must distinguish:
 
 ```text
 ProviderIdentity
@@ -138,13 +138,13 @@ Taxpayer
 Tenant
 ```
 
-`ProviderIdentity` pertenece a la plataforma Emitta.
+`ProviderIdentity` belongs to the Emitta platform.
 
-`Taxpayer` pertenece a un tenant y representa al emisor legal del comprobante.
+`Taxpayer` belongs to a tenant and represents the legal issuer of fiscal documents.
 
-## Configuración inicial
+## Initial configuration
 
-La configuración de producción podrá incluir:
+Production configuration may include:
 
 ```text
 EMITTA_PROVIDER_RUC
@@ -152,47 +152,47 @@ EMITTA_PROVIDER_LEGAL_NAME
 EMITTA_PROVIDER_ESTABLISHMENT
 ```
 
-La configuración de plataforma será administrada mediante Doppler.
+Platform configuration will be managed through Doppler.
 
-## Riesgos
+## Risks
 
-### Cambios regulatorios
+### Regulatory changes
 
-El SRI puede modificar:
+The SRI may modify:
 
-- requisitos de registro;
-- campos obligatorios;
-- estructura de información adicional;
-- plazos de cumplimiento.
+- registration requirements;
+- mandatory fields;
+- additional-information structure;
+- compliance deadlines.
 
-Mitigación:
+Mitigation:
 
-- aislar `ProviderIdentity`;
-- mantener pruebas de regresión sobre XML;
-- revisar la ficha técnica vigente antes de cada release fiscal relevante.
+- isolate `ProviderIdentity`;
+- maintain XML regression tests;
+- review the current SRI technical specification before each significant fiscal release.
 
-### Información del proveedor incorrecta
+### Incorrect provider information
 
-Mitigación:
+Mitigation:
 
-- configuración controlada;
-- validación al arranque;
-- pruebas de integración;
-- checklist de despliegue.
+- controlled configuration;
+- startup validation;
+- integration tests;
+- production deployment checklist.
 
-## Evolución futura
+## Future evolution
 
-Se deberá crear un nuevo ADR si Emitta llega a soportar:
+A new ADR must be created if Emitta later supports:
 
-- múltiples proveedores registrados;
-- white-label;
+- multiple registered providers;
+- white-label providers;
 - resellers;
-- selección de proveedor por tenant.
+- provider selection per tenant.
 
-La arquitectura inicial asume una sola identidad de proveedor Emitta por despliegue/ambiente.
+The initial architecture assumes one Emitta provider identity per deployment/environment.
 
-## Referencias
+## References
 
-- Resolución SRI NAC-DGERCGC26-00000027.
-- Comunicado del SRI del 28 de julio de 2026 sobre registro de proveedores de sistemas o servicios de facturación electrónica.
-- Ficha técnica vigente de comprobantes electrónicos del SRI.
+- SRI Resolution NAC-DGERCGC26-00000027.
+- SRI announcement dated July 28, 2026 regarding registration of electronic invoicing system/service providers.
+- Current SRI electronic invoicing technical specification.
