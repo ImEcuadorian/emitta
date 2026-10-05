@@ -1,0 +1,91 @@
+spring:
+  application:
+    name: emitta
+
+  # ===========================================================
+  # APPLICATION DATABASE USER
+  # ===========================================================
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:55432}/${DB_NAME:emitta_db}?currentSchema=emitta
+    username: ${DB_APP_USERNAME}
+    password: ${DB_APP_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # ===========================================================
+  # JPA / HIBERNATE
+  # ===========================================================
+
+  jpa:
+    open-in-view: false
+
+    hibernate:
+      ddl-auto: validate
+
+    properties:
+      hibernate:
+        default_schema: emitta
+        format_sql: true
+
+  # ===========================================================
+  # FLYWAY
+  #
+  # Flyway usa una cuenta diferente a la aplicación.
+  # ===========================================================
+
+  flyway:
+    enabled: true
+
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:55432}/${DB_NAME:emitta_db}
+
+    user: ${DB_MIGRATION_USERNAME}
+    password: ${DB_MIGRATION_PASSWORD}
+
+    default-schema: emitta
+
+    schemas:
+      - emitta
+
+  # ===========================================================
+  # REDIS
+  # ===========================================================
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:56379}
+
+  # ===========================================================
+  # RABBITMQ
+  # ===========================================================
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:55672}
+    username: ${RABBITMQ_USERNAME:emitta}
+    password: ${RABBITMQ_PASSWORD}
+
+
+server:
+  port: ${SERVER_PORT:18080}
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - metrics
+
+  endpoint:
+    health:
+      show-details: when-authorized

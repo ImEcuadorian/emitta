@@ -1,0 +1,81 @@
+services:
+
+  postgres:
+    image: postgres:18
+    container_name: emitta-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_ADMIN_USERNAME}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD}
+
+      # Solo se usan para inicializar los roles internos
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD}
+      DB_READONLY_PASSWORD: ${DB_READONLY_PASSWORD}
+
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-55432}:5432"
+
+    volumes:
+      - emitta_postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_ADMIN_USERNAME} -d ${DB_NAME}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  redis:
+    image: redis:8-alpine
+    container_name: emitta-redis
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-56379}:6379"
+
+    volumes:
+      - emitta_redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: emitta-rabbitmq
+    restart: unless-stopped
+
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+    ports:
+      - "127.0.0.1:${RABBITMQ_HOST_PORT:-55672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:-15682}:15672"
+
+    volumes:
+      - emitta_rabbitmq_data:/var/lib/rabbitmq
+
+    healthcheck:
+      test:
+        ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+volumes:
+  emitta_postgres_data:
+  emitta_redis_data:
+  emitta_rabbitmq_data:
