@@ -2,8 +2,10 @@ package io.github.imecuadorian.emitta.pointofissue.adapter.config;
 
 import io.github.imecuadorian.emitta.establishment.application.port.in.EstablishmentLookupUseCase;
 import io.github.imecuadorian.emitta.pointofissue.application.port.in.CreatePointOfIssueUseCase;
+import io.github.imecuadorian.emitta.pointofissue.application.port.in.PointOfIssueLookupUseCase;
 import io.github.imecuadorian.emitta.pointofissue.application.port.out.PointOfIssueRepository;
 import io.github.imecuadorian.emitta.pointofissue.application.service.CreatePointOfIssueService;
+import io.github.imecuadorian.emitta.pointofissue.application.service.PointOfIssueLookupService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -24,6 +26,15 @@ public class PointOfIssueConfiguration {
                 establishmentLookupUseCase,
                 clock,
                 UUID::randomUUID
+        );
+    }
+
+    @Bean
+    PointOfIssueLookupUseCase pointOfIssueLookupUseCase(
+            PointOfIssueRepository pointOfIssueRepository
+    ) {
+        return new PointOfIssueLookupService(
+                pointOfIssueRepository
         );
     }
 }
