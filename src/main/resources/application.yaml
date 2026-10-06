@@ -73,6 +73,10 @@ spring:
     password: ${RABBITMQ_PASSWORD}
     publisher-confirm-type: correlated
 
+springdoc:
+  swagger-ui:
+    url: /openapi/emitta-openapi.yaml
+    path: /swagger-ui.html
 
 server:
   port: ${SERVER_PORT:18080}
