@@ -71,6 +71,7 @@ spring:
     port: ${RABBITMQ_PORT:55672}
     username: ${RABBITMQ_USERNAME:emitta}
     password: ${RABBITMQ_PASSWORD}
+    publisher-confirm-type: correlated
 
 
 server:
@@ -89,3 +90,10 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+
+emitta:
+  outbox:
+    publisher:
+      enabled: true
+      fixed-delay-ms: 250
+      initial-delay-ms: 1000
