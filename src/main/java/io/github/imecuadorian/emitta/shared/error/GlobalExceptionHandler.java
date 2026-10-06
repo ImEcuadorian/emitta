@@ -2,6 +2,8 @@ package io.github.imecuadorian.emitta.shared.error;
 
 import io.github.imecuadorian.emitta.establishment.application.exception.EstablishmentAlreadyExistsException;
 import io.github.imecuadorian.emitta.establishment.application.exception.TaxpayerNotFoundException;
+import io.github.imecuadorian.emitta.pointofissue.application.exception.EstablishmentNotFoundException;
+import io.github.imecuadorian.emitta.pointofissue.application.exception.PointOfIssueAlreadyExistsException;
 import io.github.imecuadorian.emitta.taxpayer.application.exception.TaxpayerAlreadyExistsException;
 import io.github.imecuadorian.emitta.taxpayer.application.exception.TenantNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -208,6 +210,70 @@ public class GlobalExceptionHandler {
         problem.setProperty(
                 "ruc",
                 exception.getRuc()
+        );
+
+        return problem;
+    }
+
+    @ExceptionHandler(EstablishmentNotFoundException.class)
+    ProblemDetail handleEstablishmentNotFound(
+            EstablishmentNotFoundException exception,
+            HttpServletRequest request
+    ) {
+
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(
+                        HttpStatus.NOT_FOUND,
+                        exception.getMessage()
+                );
+
+        problem.setType(
+                RESOURCE_NOT_FOUND_TYPE
+        );
+
+        problem.setTitle(
+                "Resource not found"
+        );
+
+        problem.setInstance(
+                URI.create(request.getRequestURI())
+        );
+
+        problem.setProperty(
+                "establishmentId",
+                exception.getEstablishmentId()
+        );
+
+        return problem;
+    }
+
+    @ExceptionHandler(PointOfIssueAlreadyExistsException.class)
+    ProblemDetail handlePointOfIssueConflict(
+            PointOfIssueAlreadyExistsException exception,
+            HttpServletRequest request
+    ) {
+
+        ProblemDetail problem =
+                ProblemDetail.forStatusAndDetail(
+                        HttpStatus.CONFLICT,
+                        exception.getMessage()
+                );
+
+        problem.setType(
+                CONFLICT_TYPE
+        );
+
+        problem.setTitle(
+                "Resource conflict"
+        );
+
+        problem.setInstance(
+                URI.create(request.getRequestURI())
+        );
+
+        problem.setProperty(
+                "code",
+                exception.getCode()
         );
 
         return problem;
