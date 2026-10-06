@@ -1,6 +1,7 @@
 package io.github.imecuadorian.emitta.document.application.service;
 
 import io.github.imecuadorian.emitta.document.application.command.CreateDocumentCommand;
+import io.github.imecuadorian.emitta.document.application.event.DocumentReceivedEvent;
 import io.github.imecuadorian.emitta.document.application.exception.DocumentEnvironmentDisabledException;
 import io.github.imecuadorian.emitta.document.application.exception.DocumentFiscalResourceInactiveException;
 import io.github.imecuadorian.emitta.document.application.exception.DocumentFiscalResourceNotFoundException;
@@ -13,11 +14,14 @@ import io.github.imecuadorian.emitta.document.domain.Document;
 import io.github.imecuadorian.emitta.document.domain.IdempotencyKey;
 import io.github.imecuadorian.emitta.establishment.application.port.in.EstablishmentFiscalData;
 import io.github.imecuadorian.emitta.establishment.application.port.in.EstablishmentFiscalLookupUseCase;
+import io.github.imecuadorian.emitta.outbox.application.model.OutboxEvent;
+import io.github.imecuadorian.emitta.outbox.application.port.out.OutboxEventPort;
 import io.github.imecuadorian.emitta.pointofissue.application.port.in.PointOfIssueFiscalData;
 import io.github.imecuadorian.emitta.pointofissue.application.port.in.PointOfIssueFiscalLookupUseCase;
 import io.github.imecuadorian.emitta.shared.fiscal.FiscalEnvironment;
 import io.github.imecuadorian.emitta.taxpayer.application.port.in.TaxpayerFiscalData;
 import io.github.imecuadorian.emitta.taxpayer.application.port.in.TaxpayerFiscalLookupUseCase;
+import jakarta.transaction.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -42,12 +46,14 @@ public final class CreateDocumentService
 
     private final Clock clock;
     private final Supplier<UUID> idGenerator;
+    private final OutboxEventPort outboxEventPort;
 
     public CreateDocumentService(
             DocumentRepository documentRepository,
             PointOfIssueFiscalLookupUseCase pointOfIssueLookup,
             EstablishmentFiscalLookupUseCase establishmentLookup,
             TaxpayerFiscalLookupUseCase taxpayerLookup,
+            OutboxEventPort outboxEventPort,
             Clock clock,
             Supplier<UUID> idGenerator
     ) {
@@ -63,6 +69,9 @@ public final class CreateDocumentService
         this.taxpayerLookup =
                 Objects.requireNonNull(taxpayerLookup);
 
+        this.outboxEventPort =
+                Objects.requireNonNull(outboxEventPort);
+
         this.clock =
                 Objects.requireNonNull(clock);
 
@@ -71,6 +80,7 @@ public final class CreateDocumentService
     }
 
     @Override
+    @Transactional
     public CreateDocumentResult create(
             CreateDocumentCommand command
     ) {
@@ -229,12 +239,38 @@ public final class CreateDocumentService
                         );
 
         if (inserted) {
+
+            document.queue(now);
+
+            Document queuedDocument =
+                    documentRepository.save(
+                            document
+                    );
+
+            DocumentReceivedEvent domainEvent =
+                    new DocumentReceivedEvent(
+                            queuedDocument
+                    );
+
+            OutboxEvent outboxEvent =
+                    new OutboxEvent(
+                            idGenerator.get(),
+                            queuedDocument.getTenantId(),
+                            DocumentReceivedEvent.AGGREGATE_TYPE,
+                            queuedDocument.getId(),
+                            DocumentReceivedEvent.EVENT_TYPE,
+                            domainEvent.payload()
+                    );
+
+            outboxEventPort.append(
+                    outboxEvent
+            );
+
             return new CreateDocumentResult(
-                    document,
+                    queuedDocument,
                     true
             );
         }
-
         /*
          * Another request may have inserted the same
          * tenant + idempotency key between our initial

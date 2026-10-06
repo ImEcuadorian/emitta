@@ -8,8 +8,4 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest
 class EmittaApplicationTests {
 
-    @Test
-    void contextLoads() {
-    }
-
 }

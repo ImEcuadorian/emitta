@@ -9,6 +9,8 @@ import io.github.imecuadorian.emitta.document.domain.Document;
 import io.github.imecuadorian.emitta.document.domain.IdempotencyKey;
 import io.github.imecuadorian.emitta.establishment.application.port.in.EstablishmentFiscalData;
 import io.github.imecuadorian.emitta.establishment.application.port.in.EstablishmentFiscalLookupUseCase;
+import io.github.imecuadorian.emitta.outbox.application.model.OutboxEvent;
+import io.github.imecuadorian.emitta.outbox.application.port.out.OutboxEventPort;
 import io.github.imecuadorian.emitta.pointofissue.application.port.in.PointOfIssueFiscalData;
 import io.github.imecuadorian.emitta.pointofissue.application.port.in.PointOfIssueFiscalLookupUseCase;
 import io.github.imecuadorian.emitta.shared.fiscal.DocumentType;
@@ -18,6 +20,7 @@ import io.github.imecuadorian.emitta.taxpayer.application.port.in.TaxpayerFiscal
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,9 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CreateDocumentServiceTest {
@@ -76,6 +77,9 @@ class CreateDocumentServiceTest {
 
     private CreateDocumentService service;
 
+    @Mock
+    private OutboxEventPort outboxEventPort;
+
     @BeforeEach
     void setUp() {
 
@@ -91,13 +95,14 @@ class CreateDocumentServiceTest {
                         pointOfIssueLookup,
                         establishmentLookup,
                         taxpayerLookup,
+                        outboxEventPort,
                         clock,
                         () -> DOCUMENT_ID
                 );
     }
 
     @Test
-    void shouldCreateReceivedDocument() {
+    void shouldCreateAndQueueDocument() {
 
         configureFiscalHierarchy(
                 TENANT_ID
@@ -119,6 +124,15 @@ class CreateDocumentServiceTest {
                 )
         ).thenReturn(
                 true
+        );
+
+        when(
+                documentRepository.save(
+                        any()
+                )
+        ).thenAnswer(
+                invocation ->
+                        invocation.getArgument(0)
         );
 
         CreateDocumentResult result =
@@ -151,10 +165,58 @@ class CreateDocumentServiceTest {
         );
 
         assertEquals(
-                "RECEIVED",
+                "QUEUED",
                 result.document()
                         .getStatus()
                         .name()
+        );
+
+        assertEquals(
+                NOW,
+                result.document()
+                        .getQueuedAt()
+        );
+
+        ArgumentCaptor<OutboxEvent> captor =
+                ArgumentCaptor.forClass(
+                        OutboxEvent.class
+                );
+
+        verify(
+                outboxEventPort,
+                times(1)
+        ).append(
+                captor.capture()
+        );
+
+        OutboxEvent event =
+                captor.getValue();
+
+        assertEquals(
+                "DOCUMENT",
+                event.aggregateType()
+        );
+
+        assertEquals(
+                DOCUMENT_ID,
+                event.aggregateId()
+        );
+
+        assertEquals(
+                "document.received.v1",
+                event.eventType()
+        );
+
+        assertEquals(
+                DOCUMENT_ID.toString(),
+                event.payload()
+                        .get("documentId")
+        );
+
+        assertEquals(
+                "QUEUED",
+                event.payload()
+                        .get("status")
         );
     }
 
@@ -194,6 +256,15 @@ class CreateDocumentServiceTest {
         ).insertIfAbsent(
                 any()
         );
+
+        verify(
+                outboxEventPort,
+                never()
+        ).append(
+                any()
+        );
+
+
     }
 
     @Test
@@ -261,6 +332,70 @@ class CreateDocumentServiceTest {
                 documentRepository,
                 never()
         ).insertIfAbsent(
+                any()
+        );
+    }
+
+    @Test
+    void shouldPersistQueuedDocumentBeforeAppendingOutboxEvent() {
+
+        configureFiscalHierarchy(
+                TENANT_ID
+        );
+
+        when(
+                documentRepository
+                        .findByTenantIdAndIdempotencyKey(
+                                any(),
+                                any()
+                        )
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        when(
+                documentRepository.insertIfAbsent(
+                        any()
+                )
+        ).thenReturn(
+                true
+        );
+
+        when(
+                documentRepository.save(
+                        any()
+                )
+        ).thenAnswer(
+                invocation ->
+                        invocation.getArgument(0)
+        );
+
+        service.create(
+                validCommand()
+        );
+
+        ArgumentCaptor<Document> documentCaptor =
+                ArgumentCaptor.forClass(
+                        Document.class
+                );
+
+        verify(
+                documentRepository
+        ).save(
+                documentCaptor.capture()
+        );
+
+        assertEquals(
+                "QUEUED",
+                documentCaptor
+                        .getValue()
+                        .getStatus()
+                        .name()
+        );
+
+        verify(
+                outboxEventPort
+        ).append(
                 any()
         );
     }
