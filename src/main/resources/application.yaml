@@ -97,3 +97,7 @@ emitta:
       enabled: true
       fixed-delay-ms: 250
       initial-delay-ms: 1000
+  fiscal:
+    issue-zone: America/Guayaquil
+    worker:
+      enabled: true

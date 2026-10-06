@@ -22,4 +22,6 @@ public interface DocumentRepository {
     );
 
     boolean insertIfAbsent(Document document);
+
+    Optional<Document> findByIdForUpdate(UUID id);
 }

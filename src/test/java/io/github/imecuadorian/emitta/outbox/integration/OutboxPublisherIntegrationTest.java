@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(
         properties = {
                 "emitta.outbox.publisher.enabled=false",
+                "emitta.fiscal.worker.enabled=false",
                 "spring.rabbitmq.publisher-confirm-type=correlated"
         }
 )

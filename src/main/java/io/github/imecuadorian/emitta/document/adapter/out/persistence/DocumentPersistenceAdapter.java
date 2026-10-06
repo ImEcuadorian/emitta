@@ -190,4 +190,16 @@ public class DocumentPersistenceAdapter
                 );
 
         return affectedRows == 1;
-    }}
+    }
+
+    @Override
+    public Optional<Document> findByIdForUpdate(
+            UUID id
+    ) {
+        return repository
+                .findByIdForUpdate(id)
+                .map(
+                        DocumentPersistenceMapper::toDomain
+                );
+    }
+}
