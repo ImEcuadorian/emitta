@@ -2,6 +2,7 @@ package io.github.imecuadorian.emitta.outbox.integration;
 
 import io.github.imecuadorian.emitta.outbox.adapter.config.RabbitOutboxConfiguration;
 import io.github.imecuadorian.emitta.outbox.application.port.in.PublishPendingOutboxUseCase;
+import io.github.imecuadorian.emitta.support.JwtTestProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -9,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -52,6 +55,15 @@ class OutboxPublisherIntegrationTest {
             new RabbitMQContainer(
                     "rabbitmq:4-management-alpine"
             );
+
+    @DynamicPropertySource
+    static void jwtProperties(
+            DynamicPropertyRegistry registry
+    ) {
+        JwtTestProperties.register(
+                registry
+        );
+    }
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

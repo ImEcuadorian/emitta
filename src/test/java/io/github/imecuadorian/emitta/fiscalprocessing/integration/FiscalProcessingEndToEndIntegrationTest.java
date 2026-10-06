@@ -7,6 +7,7 @@ import io.github.imecuadorian.emitta.document.domain.DocumentStatus;
 import io.github.imecuadorian.emitta.outbox.application.port.in.PublishPendingOutboxUseCase;
 import io.github.imecuadorian.emitta.shared.fiscal.DocumentType;
 import io.github.imecuadorian.emitta.shared.fiscal.FiscalEnvironment;
+import io.github.imecuadorian.emitta.support.JwtTestProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,13 +15,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
-import java.time.Instant;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.Map;
 import java.util.UUID;
 
@@ -66,6 +68,15 @@ class FiscalProcessingEndToEndIntegrationTest {
             Instant.parse(
                     "2026-10-05T20:00:00Z"
             );
+
+    @DynamicPropertySource
+    static void jwtProperties(
+            DynamicPropertyRegistry registry
+    ) {
+        JwtTestProperties.register(
+                registry
+        );
+    }
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -173,6 +184,34 @@ class FiscalProcessingEndToEndIntegrationTest {
                 "001",
                 "Caja Principal",
                 "ACTIVE"
+        );
+    }
+
+    @Test
+    void shouldUseEcuadorCalendarDateForAccessKey() {
+
+        OffsetDateTime issuedAt =
+                OffsetDateTime.parse(
+                        "2026-10-06T23:00:03Z"
+                );
+
+        LocalDate emissionDate =
+                issuedAt
+                        .toInstant()
+                        .atZone(
+                                ZoneId.of(
+                                        "America/Guayaquil"
+                                )
+                        )
+                        .toLocalDate();
+
+        assertEquals(
+                LocalDate.of(
+                        2026,
+                        10,
+                        6
+                ),
+                emissionDate
         );
     }
 
