@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record TaxpayerFiscalData(
         UUID id,
+        UUID tenantId,
         String ruc,
         boolean active,
         boolean testEnabled,

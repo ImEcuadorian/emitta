@@ -20,4 +20,6 @@ public interface DocumentRepository {
     Optional<Document> findByAccessKey(
             String accessKey
     );
+
+    boolean insertIfAbsent(Document document);
 }

@@ -36,6 +36,7 @@ public final class TaxpayerFiscalLookupService
                 .map(taxpayer ->
                         new TaxpayerFiscalData(
                                 taxpayer.getId(),
+                                taxpayer.getTenantId(),
                                 taxpayer.getRuc().value(),
                                 taxpayer.getStatus()
                                         == TaxpayerStatus.ACTIVE,

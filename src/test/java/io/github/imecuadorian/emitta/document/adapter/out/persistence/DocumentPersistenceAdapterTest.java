@@ -21,12 +21,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(
@@ -392,10 +391,73 @@ class DocumentPersistenceAdapterTest {
                 "TEST",
                 "RECEIVED",
                 idempotencyKey,
-                now,
-                now,
-                now,
-                now
+                now.atOffset(ZoneOffset.UTC),
+                now.atOffset(ZoneOffset.UTC),
+                now.atOffset(ZoneOffset.UTC),
+                now.atOffset(ZoneOffset.UTC)
+        );
+    }
+
+    @Test
+    void shouldInsertDocumentOnlyOnceForSameIdempotencyKey() {
+
+        Instant now =
+                Instant.parse(
+                        "2026-10-06T02:00:00Z"
+                );
+
+        Document first =
+                Document.create(
+                        UUID.randomUUID(),
+                        tenantId,
+                        taxpayerId,
+                        pointOfIssueId,
+                        DocumentType.INVOICE,
+                        FiscalEnvironment.TEST,
+                        new IdempotencyKey(
+                                "atomic-order-001"
+                        ),
+                        now,
+                        now
+                );
+
+        Document second =
+                Document.create(
+                        UUID.randomUUID(),
+                        tenantId,
+                        taxpayerId,
+                        pointOfIssueId,
+                        DocumentType.INVOICE,
+                        FiscalEnvironment.TEST,
+                        new IdempotencyKey(
+                                "atomic-order-001"
+                        ),
+                        now,
+                        now
+                );
+
+        boolean firstInserted =
+                adapter.insertIfAbsent(first);
+
+        boolean secondInserted =
+                adapter.insertIfAbsent(second);
+
+        assertTrue(firstInserted);
+        assertFalse(secondInserted);
+
+        Document persisted =
+                adapter
+                        .findByTenantIdAndIdempotencyKey(
+                                tenantId,
+                                new IdempotencyKey(
+                                        "atomic-order-001"
+                                )
+                        )
+                        .orElseThrow();
+
+        assertEquals(
+                first.getId(),
+                persisted.getId()
         );
     }
 }

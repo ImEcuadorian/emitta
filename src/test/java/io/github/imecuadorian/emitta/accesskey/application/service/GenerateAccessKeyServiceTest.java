@@ -43,6 +43,11 @@ class GenerateAccessKeyServiceTest {
     private static final UUID POINT_OF_ISSUE_ID =
             UUID.randomUUID();
 
+    private static final UUID TENANT_ID =
+            UUID.fromString(
+                    "4d34da33-c6e4-4379-8ab0-19fef817cc67"
+            );
+
     @Mock
     private PointOfIssueFiscalLookupUseCase
             pointOfIssueLookup;
@@ -130,6 +135,9 @@ class GenerateAccessKeyServiceTest {
     @Test
     void shouldNotAllocateSequentialWhenEnvironmentIsDisabled() {
 
+        UUID tenantId =
+                UUID.randomUUID();
+
         when(
                 pointOfIssueLookup.findFiscalDataById(
                         POINT_OF_ISSUE_ID
@@ -168,9 +176,10 @@ class GenerateAccessKeyServiceTest {
                 Optional.of(
                         new TaxpayerFiscalData(
                                 TAXPAYER_ID,
+                                tenantId,
                                 "1760013210001",
                                 true,
-                                false,
+                                true,
                                 false
                         )
                 )
@@ -245,6 +254,7 @@ class GenerateAccessKeyServiceTest {
                 Optional.of(
                         new TaxpayerFiscalData(
                                 TAXPAYER_ID,
+                                TENANT_ID,
                                 "1760013210001",
                                 true,
                                 true,

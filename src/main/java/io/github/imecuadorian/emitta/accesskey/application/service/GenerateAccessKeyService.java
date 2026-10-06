@@ -218,6 +218,7 @@ public final class GenerateAccessKeyService
 
         boolean enabled =
                 switch (environment) {
+
                     case TEST ->
                             taxpayer.testEnabled();
 
