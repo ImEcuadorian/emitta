@@ -29,6 +29,35 @@ public final class InvoiceItem {
 
     private final List<InvoiceItemTax> taxes;
 
+    public static InvoiceItem restore(
+            UUID id,
+            int lineNumber,
+            String sku,
+            String description,
+            BigDecimal quantity,
+            BigDecimal unitPrice,
+            BigDecimal discount,
+            BigDecimal subtotal,
+            BigDecimal taxTotal,
+            BigDecimal total,
+            List<InvoiceItemTax> taxes
+    ) {
+
+        return new InvoiceItem(
+                id,
+                lineNumber,
+                sku,
+                description,
+                quantity,
+                unitPrice,
+                discount,
+                subtotal,
+                taxTotal,
+                total,
+                taxes
+        );
+    }
+
     private InvoiceItem(
             UUID id,
             int lineNumber,

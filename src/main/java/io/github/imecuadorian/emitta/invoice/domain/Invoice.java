@@ -51,6 +51,33 @@ public final class Invoice {
         this.payments = List.copyOf(payments);
     }
 
+    public static Invoice restore(
+            UUID documentId,
+            UUID customerId,
+            BuyerSnapshot buyer,
+            BigDecimal subtotal,
+            BigDecimal discountTotal,
+            BigDecimal taxTotal,
+            BigDecimal total,
+            String currency,
+            List<InvoiceItem> items,
+            List<InvoicePayment> payments
+    ) {
+
+        return new Invoice(
+                documentId,
+                customerId,
+                buyer,
+                subtotal,
+                discountTotal,
+                taxTotal,
+                total,
+                currency,
+                items,
+                payments
+        );
+    }
+
     public static Invoice create(
             UUID documentId,
             UUID customerId,
