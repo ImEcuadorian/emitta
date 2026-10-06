@@ -105,3 +105,11 @@ emitta:
     issue-zone: America/Guayaquil
     worker:
       enabled: true
+
+  security:
+    jwt:
+      issuer: emitta
+      audience: emitta-api
+      ttl: PT15M
+      private-key-b64: ${EMITTA_JWT_PRIVATE_KEY_B64}
+      public-key-b64: ${EMITTA_JWT_PUBLIC_KEY_B64}
