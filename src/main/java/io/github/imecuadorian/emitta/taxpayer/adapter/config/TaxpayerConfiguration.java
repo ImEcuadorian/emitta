@@ -1,9 +1,11 @@
 package io.github.imecuadorian.emitta.taxpayer.adapter.config;
 
 import io.github.imecuadorian.emitta.taxpayer.application.port.in.CreateTaxpayerUseCase;
+import io.github.imecuadorian.emitta.taxpayer.application.port.in.TaxpayerFiscalLookupUseCase;
 import io.github.imecuadorian.emitta.taxpayer.application.port.in.TaxpayerLookupUseCase;
 import io.github.imecuadorian.emitta.taxpayer.application.port.out.TaxpayerRepository;
 import io.github.imecuadorian.emitta.taxpayer.application.service.CreateTaxpayerService;
+import io.github.imecuadorian.emitta.taxpayer.application.service.TaxpayerFiscalLookupService;
 import io.github.imecuadorian.emitta.taxpayer.application.service.TaxpayerLookupService;
 import io.github.imecuadorian.emitta.tenant.application.port.in.TenantLookupUseCase;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +36,15 @@ public class TaxpayerConfiguration {
             TaxpayerRepository taxpayerRepository
     ) {
         return new TaxpayerLookupService(
+                taxpayerRepository
+        );
+    }
+
+    @Bean
+    TaxpayerFiscalLookupUseCase taxpayerFiscalLookupUseCase(
+            TaxpayerRepository taxpayerRepository
+    ) {
+        return new TaxpayerFiscalLookupService(
                 taxpayerRepository
         );
     }
