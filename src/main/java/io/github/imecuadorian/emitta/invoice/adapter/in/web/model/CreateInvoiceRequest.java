@@ -82,9 +82,8 @@ public record CreateInvoiceRequest(
 
     public record Item(
 
-            @Size(
-                    max = 25
-            )
+            @NotBlank
+            @Size(max = 25)
             String sku,
 
             @NotBlank

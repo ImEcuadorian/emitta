@@ -113,7 +113,7 @@ public final class InvoiceItem {
         }
 
         String normalizedSku =
-                normalizeOptional(
+                normalizeRequired(
                         sku,
                         25,
                         "SKU"
