@@ -103,6 +103,7 @@ emitta:
       initial-delay-ms: 1000
   fiscal:
     issue-zone: America/Guayaquil
+    provider-ruc: ${EMITTA_PROVIDER_RUC}
     worker:
       enabled: true
 
@@ -113,3 +114,13 @@ emitta:
       ttl: PT15M
       private-key-b64: ${EMITTA_JWT_PRIVATE_KEY_B64}
       public-key-b64: ${EMITTA_JWT_PUBLIC_KEY_B64}
+
+  artifacts:
+    storage:
+      enabled: ${EMITTA_ARTIFACT_STORAGE_ENABLED:false}
+      endpoint: ${EMITTA_ARTIFACT_STORAGE_ENDPOINT}
+      region: ${EMITTA_ARTIFACT_STORAGE_REGION}
+      bucket: ${EMITTA_ARTIFACT_STORAGE_BUCKET}
+      access-key: ${EMITTA_ARTIFACT_STORAGE_ACCESS_KEY}
+      secret-key: ${EMITTA_ARTIFACT_STORAGE_SECRET_KEY}
+      path-style-access: ${EMITTA_ARTIFACT_STORAGE_PATH_STYLE}

@@ -2,9 +2,13 @@ package io.github.imecuadorian.emitta.fiscalprocessing.adapter.config;
 
 import io.github.imecuadorian.emitta.accesskey.application.port.in.GenerateAccessKeyUseCase;
 import io.github.imecuadorian.emitta.document.application.port.out.DocumentRepository;
+import io.github.imecuadorian.emitta.fiscalprocessing.adapter.orchestration.GenerateInvoiceXmlAfterFiscalProcessingUseCase;
 import io.github.imecuadorian.emitta.fiscalprocessing.adapter.transaction.TransactionalProcessFiscalDocumentUseCase;
 import io.github.imecuadorian.emitta.fiscalprocessing.application.port.in.ProcessFiscalDocumentUseCase;
 import io.github.imecuadorian.emitta.fiscalprocessing.application.service.ProcessFiscalDocumentService;
+import io.github.imecuadorian.emitta.invoicexml.application.port.in.GenerateAndStoreInvoiceXmlUseCase;
+
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +27,8 @@ public class FiscalProcessingConfiguration {
             GenerateAccessKeyUseCase generateAccessKeyUseCase,
             Clock clock,
             PlatformTransactionManager transactionManager,
+            ObjectProvider<GenerateAndStoreInvoiceXmlUseCase>
+                    generateAndStoreInvoiceXmlUseCaseProvider,
             @Value(
                     "${emitta.fiscal.issue-zone:America/Guayaquil}"
             )
@@ -39,11 +45,27 @@ public class FiscalProcessingConfiguration {
                         )
                 );
 
-        return new TransactionalProcessFiscalDocumentUseCase(
-                service,
-                new TransactionTemplate(
-                        transactionManager
-                )
+        ProcessFiscalDocumentUseCase transactional =
+                new TransactionalProcessFiscalDocumentUseCase(
+                        service,
+                        new TransactionTemplate(
+                                transactionManager
+                        )
+                );
+
+        GenerateAndStoreInvoiceXmlUseCase
+                generateAndStoreInvoiceXmlUseCase =
+                generateAndStoreInvoiceXmlUseCaseProvider
+                        .getIfAvailable();
+
+        if (generateAndStoreInvoiceXmlUseCase == null) {
+
+            return transactional;
+        }
+
+        return new GenerateInvoiceXmlAfterFiscalProcessingUseCase(
+                transactional,
+                generateAndStoreInvoiceXmlUseCase
         );
     }
 }

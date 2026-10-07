@@ -122,6 +122,26 @@ dependencies {
         "eu.europa.ec.joinup.sd-dss:dss-validation"
     )
 
+    implementation(
+        "eu.europa.ec.joinup.sd-dss:dss-utils-apache-commons"
+    )
+
+    // =========================================================
+// S3-COMPATIBLE OBJECT STORAGE
+// MinIO / AWS S3 / Cloudflare R2
+// =========================================================
+
+    implementation(
+        platform("software.amazon.awssdk:bom:2.32.29")
+    )
+
+    implementation(
+        "software.amazon.awssdk:s3"
+    )
+
+    implementation(
+        "software.amazon.awssdk:url-connection-client"
+    )
 
     // =========================================================
     // DEVELOPMENT
@@ -211,6 +231,22 @@ dependencies {
     )
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("object-storage-integration")
+    }
+}
+
+tasks.register<Test>("objectStorageIntegrationTest") {
+    description = "Runs integration tests against local S3-compatible object storage"
+    group = "verification"
+
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags("object-storage-integration")
+    }
+
+    shouldRunAfter(tasks.test)
 }
