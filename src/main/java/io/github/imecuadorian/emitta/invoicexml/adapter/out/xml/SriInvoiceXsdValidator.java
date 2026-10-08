@@ -3,6 +3,8 @@ package io.github.imecuadorian.emitta.invoicexml.adapter.out.xml;
 import io.github.imecuadorian.emitta.invoicexml.application.exception.InvalidInvoiceXmlException;
 import io.github.imecuadorian.emitta.invoicexml.application.port.out.InvoiceXmlValidatorPort;
 
+import org.w3c.dom.ls.LSInput;
+import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
@@ -13,6 +15,8 @@ import javax.xml.validation.Validator;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.net.URL;
 import java.util.Objects;
 
@@ -21,6 +25,12 @@ public final class SriInvoiceXsdValidator
 
     private static final String XSD_RESOURCE =
             "/sri/xsd/factura_V2.1.0.xsd";
+
+    private static final String XMLDSIG_XSD_RESOURCE =
+            "/sri/xsd/xmldsig-core-schema.xsd";
+
+    private static final String XMLDSIG_NAMESPACE =
+            "http://www.w3.org/2000/09/xmldsig#";
 
     private final Schema schema;
 
@@ -84,20 +94,6 @@ public final class SriInvoiceXsdValidator
 
     private static Schema loadSchema() {
 
-        URL resource =
-                SriInvoiceXsdValidator.class
-                        .getResource(
-                                XSD_RESOURCE
-                        );
-
-        if (resource == null) {
-
-            throw new IllegalStateException(
-                    "SRI invoice XSD not found: "
-                            + XSD_RESOURCE
-            );
-        }
-
         try {
 
             SchemaFactory factory =
@@ -112,19 +108,221 @@ public final class SriInvoiceXsdValidator
 
             factory.setProperty(
                     XMLConstants.ACCESS_EXTERNAL_SCHEMA,
-                    "file"
+                    ""
             );
 
-            return factory.newSchema(
-                    resource
+            factory.setResourceResolver(
+                    new ClasspathSchemaResolver()
             );
 
-        } catch (SAXException exception) {
+            InputStream schemaStream =
+                    requiredResource(
+                            XSD_RESOURCE
+                    );
+
+            try (schemaStream) {
+
+                StreamSource source =
+                        new StreamSource(
+                                schemaStream
+                        );
+
+                source.setSystemId(
+                        "classpath:"
+                                + XSD_RESOURCE
+                );
+
+                return factory.newSchema(
+                        source
+                );
+            }
+
+        } catch (
+                SAXException
+                | IOException exception
+        ) {
 
             throw new IllegalStateException(
                     "Unable to load SRI invoice XSD",
                     exception
             );
+        }
+    }
+
+    private static InputStream requiredResource(
+            String resource
+    ) {
+
+        InputStream inputStream =
+                SriInvoiceXsdValidator.class
+                        .getResourceAsStream(
+                                resource
+                        );
+
+        if (inputStream == null) {
+
+            throw new IllegalStateException(
+                    "Schema resource not found: "
+                            + resource
+            );
+        }
+
+        return inputStream;
+    }
+
+    private static final class ClasspathSchemaResolver
+            implements LSResourceResolver {
+
+        @Override
+        public LSInput resolveResource(
+                String type,
+                String namespaceUri,
+                String publicId,
+                String systemId,
+                String baseUri
+        ) {
+
+            boolean xmlDsigSchema =
+                    XMLDSIG_NAMESPACE.equals(
+                            namespaceUri
+                    )
+                            || "xmldsig-core-schema.xsd"
+                            .equals(
+                                    systemId
+                            );
+
+            if (!xmlDsigSchema) {
+                return null;
+            }
+
+            return new ClasspathLsInput(
+                    publicId,
+                    "classpath:"
+                            + XMLDSIG_XSD_RESOURCE,
+                    requiredResource(
+                            XMLDSIG_XSD_RESOURCE
+                    )
+            );
+        }
+    }
+
+    private static final class ClasspathLsInput
+            implements LSInput {
+
+        private Reader characterStream;
+        private InputStream byteStream;
+        private String stringData;
+        private String systemId;
+        private String publicId;
+        private String baseUri;
+        private String encoding;
+        private boolean certifiedText;
+
+        private ClasspathLsInput(
+                String publicId,
+                String systemId,
+                InputStream byteStream
+        ) {
+
+            this.publicId = publicId;
+            this.systemId = systemId;
+            this.byteStream = byteStream;
+        }
+
+        @Override
+        public Reader getCharacterStream() {
+            return characterStream;
+        }
+
+        @Override
+        public void setCharacterStream(
+                Reader characterStream
+        ) {
+            this.characterStream = characterStream;
+        }
+
+        @Override
+        public InputStream getByteStream() {
+            return byteStream;
+        }
+
+        @Override
+        public void setByteStream(
+                InputStream byteStream
+        ) {
+            this.byteStream = byteStream;
+        }
+
+        @Override
+        public String getStringData() {
+            return stringData;
+        }
+
+        @Override
+        public void setStringData(
+                String stringData
+        ) {
+            this.stringData = stringData;
+        }
+
+        @Override
+        public String getSystemId() {
+            return systemId;
+        }
+
+        @Override
+        public void setSystemId(
+                String systemId
+        ) {
+            this.systemId = systemId;
+        }
+
+        @Override
+        public String getPublicId() {
+            return publicId;
+        }
+
+        @Override
+        public void setPublicId(
+                String publicId
+        ) {
+            this.publicId = publicId;
+        }
+
+        @Override
+        public String getBaseURI() {
+            return baseUri;
+        }
+
+        @Override
+        public void setBaseURI(
+                String baseUri
+        ) {
+            this.baseUri = baseUri;
+        }
+
+        @Override
+        public String getEncoding() {
+            return encoding;
+        }
+
+        @Override
+        public void setEncoding(
+                String encoding
+        ) {
+            this.encoding = encoding;
+        }
+
+        @Override
+        public boolean getCertifiedText() {
+            return certifiedText;
+        }
+
+        @Override
+        public void setCertifiedText(
+                boolean certifiedText
+        ) {
+            this.certifiedText = certifiedText;
         }
     }
 }

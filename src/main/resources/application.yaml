@@ -124,3 +124,25 @@ emitta:
       access-key: ${EMITTA_ARTIFACT_STORAGE_ACCESS_KEY}
       secret-key: ${EMITTA_ARTIFACT_STORAGE_SECRET_KEY}
       path-style-access: ${EMITTA_ARTIFACT_STORAGE_PATH_STYLE}
+
+  signing:
+    enabled: ${EMITTA_SIGNING_ENABLED:false}
+
+  sri:
+    authorization:
+      enabled: ${EMITTA_SRI_AUTHORIZATION_ENABLED:false}
+
+      test-endpoint: https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline
+      production-endpoint: https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline
+
+      connect-timeout: ${EMITTA_SRI_AUTHORIZATION_CONNECT_TIMEOUT:PT3S}
+      request-timeout: ${EMITTA_SRI_AUTHORIZATION_REQUEST_TIMEOUT:PT10S}
+
+    reception:
+      enabled: ${EMITTA_SRI_RECEPTION_ENABLED:false}
+
+      test-endpoint: https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline
+      production-endpoint: https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline
+
+      connect-timeout: ${EMITTA_SRI_RECEPTION_CONNECT_TIMEOUT:PT3S}
+      request-timeout: ${EMITTA_SRI_RECEPTION_REQUEST_TIMEOUT:PT10S}

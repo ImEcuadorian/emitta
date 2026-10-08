@@ -1,5 +1,7 @@
 package io.github.imecuadorian.emitta.fiscalsigning.adapter.out.dss;
 
+import io.github.imecuadorian.emitta.fiscalsigning.adapter.out.xml.JdkSriXadesSignatureVerifier;
+import io.github.imecuadorian.emitta.fiscalsigning.application.exception.XmlSignatureVerificationException;
 import io.github.imecuadorian.emitta.fiscalsigning.application.model.SignedXml;
 import io.github.imecuadorian.emitta.fiscalsigning.application.model.SigningKeyMaterial;
 
@@ -125,6 +127,56 @@ class DssXadesBesXmlSignerTest {
 
         byte[] signedXml =
                 signed.content();
+
+        JdkSriXadesSignatureVerifier verifier =
+                new JdkSriXadesSignatureVerifier();
+
+        /*
+         * A real DSS-generated XAdES signature must pass
+         * the reusable signature verifier.
+         */
+        assertDoesNotThrow(
+                () -> verifier.verify(signedXml)
+        );
+
+        /*
+         * Modifying a signed value must invalidate
+         * the cryptographic signature.
+         */
+        String original =
+                new String(
+                        signedXml,
+                        StandardCharsets.UTF_8
+                );
+
+        String modified =
+                original.replace(
+                        "1790012345001",
+                        "1790012345002"
+                );
+
+        assertNotEquals(
+                original,
+                modified,
+                "Test must actually modify the signed document"
+        );
+
+        assertThrows(
+                XmlSignatureVerificationException.class,
+                () -> verifier.verify(
+                        modified.getBytes(
+                                StandardCharsets.UTF_8
+                        )
+                )
+        );
+
+        /*
+         * An unsigned invoice cannot pass verification.
+         */
+        assertThrows(
+                XmlSignatureVerificationException.class,
+                () -> verifier.verify(unsignedXml)
+        );
 
         assertNotNull(
                 signedXml

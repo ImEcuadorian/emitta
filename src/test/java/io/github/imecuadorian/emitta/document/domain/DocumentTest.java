@@ -127,21 +127,180 @@ class DocumentTest {
     }
 
     @Test
-    void shouldAllowRetryAfterRejection() {
+    void shouldScheduleRetryAfterSubmittedFailure() {
+
+        Document document =
+                createDocument();
+
+        document.queue(
+                NOW.plusSeconds(
+                        1
+                )
+        );
+
+        document.startGenerating(
+                NOW.plusSeconds(
+                        2
+                )
+        );
+
+        document.markSigned(
+                NOW.plusSeconds(
+                        3
+                )
+        );
+
+        document.markSubmitted(
+                NOW.plusSeconds(
+                        4
+                )
+        );
+
+        document.scheduleRetry(
+                NOW.plusSeconds(
+                        5
+                )
+        );
+
+        assertEquals(
+                DocumentStatus.RETRY_PENDING,
+                document.getStatus()
+        );
+    }
+
+    @Test
+    void shouldResubmitRetryPendingDocument() {
+
+        Document document =
+                createDocument();
+
+        document.queue(
+                NOW.plusSeconds(
+                        1
+                )
+        );
+
+        document.startGenerating(
+                NOW.plusSeconds(
+                        2
+                )
+        );
+
+        document.markSigned(
+                NOW.plusSeconds(
+                        3
+                )
+        );
+
+        document.markSubmitted(
+                NOW.plusSeconds(
+                        4
+                )
+        );
+
+        document.scheduleRetry(
+                NOW.plusSeconds(
+                        5
+                )
+        );
+
+        document.markSubmitted(
+                NOW.plusSeconds(
+                        6
+                )
+        );
+
+        assertEquals(
+                DocumentStatus.SUBMITTED,
+                document.getStatus()
+        );
+
+        assertEquals(
+                NOW.plusSeconds(
+                        6
+                ),
+                document.getSubmittedAt()
+        );
+    }
+
+    @Test
+    void shouldNotRetryRejectedDocument() {
+
+        Document document =
+                createDocument();
+
+        document.queue(
+                NOW.plusSeconds(
+                        1
+                )
+        );
+
+        document.startGenerating(
+                NOW.plusSeconds(
+                        2
+                )
+        );
+
+        document.markSigned(
+                NOW.plusSeconds(
+                        3
+                )
+        );
+
+        document.markSubmitted(
+                NOW.plusSeconds(
+                        4
+                )
+        );
+
+        document.markRejected(
+                NOW.plusSeconds(
+                        5
+                )
+        );
+
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        document.scheduleRetry(
+                                NOW.plusSeconds(
+                                        6
+                                )
+                        )
+        );
+
+        assertEquals(
+                DocumentStatus.REJECTED,
+                document.getStatus()
+        );
+    }
+
+    @Test
+    void shouldAuthorizeDocumentAfterRetryPending() {
 
         Document document =
                 createDocument();
 
         document.queue(NOW.plusSeconds(1));
+
         document.startGenerating(NOW.plusSeconds(2));
+
         document.markSigned(NOW.plusSeconds(3));
+
         document.markSubmitted(NOW.plusSeconds(4));
-        document.markRejected(NOW.plusSeconds(5));
-        document.scheduleRetry(NOW.plusSeconds(6));
+
+        document.scheduleRetry(NOW.plusSeconds(5));
+
+        document.markAuthorized(NOW.plusSeconds(6));
 
         assertEquals(
-                DocumentStatus.RETRY_PENDING,
+                DocumentStatus.AUTHORIZED,
                 document.getStatus()
+        );
+
+        assertEquals(
+                NOW.plusSeconds(6),
+                document.getAuthorizedAt()
         );
     }
 

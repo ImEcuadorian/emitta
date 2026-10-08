@@ -4,8 +4,11 @@ import io.github.imecuadorian.emitta.documentartifact.adapter.config.ArtifactSto
 import io.github.imecuadorian.emitta.documentartifact.application.model.StoredArtifactObject;
 import io.github.imecuadorian.emitta.documentartifact.application.port.out.DocumentArtifactStoragePort;
 import io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactType;
+import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.util.Locale;
@@ -95,6 +98,39 @@ public final class S3DocumentArtifactStorageAdapter
         return new StoredArtifactObject(
                 storageKey
         );
+    }
+
+    @Override
+    public byte[] load(
+            String storageKey
+    ) {
+
+        if (
+                storageKey == null
+                        || storageKey.isBlank()
+        ) {
+
+            throw new IllegalArgumentException(
+                    "Storage key cannot be blank"
+            );
+        }
+
+        GetObjectRequest request =
+                GetObjectRequest.builder()
+                        .bucket(
+                                properties.bucket()
+                        )
+                        .key(
+                                storageKey
+                        )
+                        .build();
+
+        ResponseBytes<GetObjectResponse> response =
+                s3Client.getObjectAsBytes(
+                        request
+                );
+
+        return response.asByteArray();
     }
 
     private static String buildStorageKey(

@@ -3,9 +3,11 @@ package io.github.imecuadorian.emitta.fiscalprocessing.adapter.config;
 import io.github.imecuadorian.emitta.accesskey.application.port.in.GenerateAccessKeyUseCase;
 import io.github.imecuadorian.emitta.document.application.port.out.DocumentRepository;
 import io.github.imecuadorian.emitta.fiscalprocessing.adapter.orchestration.GenerateInvoiceXmlAfterFiscalProcessingUseCase;
+import io.github.imecuadorian.emitta.fiscalprocessing.adapter.orchestration.SignAfterInvoiceXmlGenerationUseCase;
 import io.github.imecuadorian.emitta.fiscalprocessing.adapter.transaction.TransactionalProcessFiscalDocumentUseCase;
 import io.github.imecuadorian.emitta.fiscalprocessing.application.port.in.ProcessFiscalDocumentUseCase;
 import io.github.imecuadorian.emitta.fiscalprocessing.application.service.ProcessFiscalDocumentService;
+import io.github.imecuadorian.emitta.fiscalsigning.application.port.in.SignAndFinalizeFiscalDocumentUseCase;
 import io.github.imecuadorian.emitta.invoicexml.application.port.in.GenerateAndStoreInvoiceXmlUseCase;
 
 import org.springframework.beans.factory.ObjectProvider;
@@ -29,6 +31,8 @@ public class FiscalProcessingConfiguration {
             PlatformTransactionManager transactionManager,
             ObjectProvider<GenerateAndStoreInvoiceXmlUseCase>
                     generateAndStoreInvoiceXmlUseCaseProvider,
+            ObjectProvider<SignAndFinalizeFiscalDocumentUseCase>
+                    signAndFinalizeFiscalDocumentUseCaseProvider,
             @Value(
                     "${emitta.fiscal.issue-zone:America/Guayaquil}"
             )
@@ -63,9 +67,25 @@ public class FiscalProcessingConfiguration {
             return transactional;
         }
 
-        return new GenerateInvoiceXmlAfterFiscalProcessingUseCase(
-                transactional,
-                generateAndStoreInvoiceXmlUseCase
+        ProcessFiscalDocumentUseCase pipeline =
+                new GenerateInvoiceXmlAfterFiscalProcessingUseCase(
+                        transactional,
+                        generateAndStoreInvoiceXmlUseCase
+                );
+
+        SignAndFinalizeFiscalDocumentUseCase
+                signAndFinalizeFiscalDocumentUseCase =
+                signAndFinalizeFiscalDocumentUseCaseProvider
+                        .getIfAvailable();
+
+        if (signAndFinalizeFiscalDocumentUseCase == null) {
+
+            return pipeline;
+        }
+
+        return new SignAfterInvoiceXmlGenerationUseCase(
+                pipeline,
+                signAndFinalizeFiscalDocumentUseCase
         );
     }
 }

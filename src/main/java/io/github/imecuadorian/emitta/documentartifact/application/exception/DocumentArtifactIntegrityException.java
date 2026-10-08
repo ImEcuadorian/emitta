@@ -12,8 +12,22 @@ public final class DocumentArtifactIntegrityException
             DocumentArtifactType type
     ) {
 
+        this(
+                documentId,
+                type,
+                "Artifact content integrity violation"
+        );
+    }
+
+    public DocumentArtifactIntegrityException(
+            UUID documentId,
+            DocumentArtifactType type,
+            String reason
+    ) {
+
         super(
-                "Artifact already exists with different content: "
+                reason
+                        + ": "
                         + documentId
                         + " / "
                         + type

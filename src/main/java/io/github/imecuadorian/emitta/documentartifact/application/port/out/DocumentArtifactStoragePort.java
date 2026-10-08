@@ -14,4 +14,8 @@ public interface DocumentArtifactStoragePort {
             String sha256,
             byte[] content
     );
+
+    byte[] load(
+            String storageKey
+    );
 }

@@ -275,22 +275,51 @@ public final class Document {
         touch(now);
     }
 
-    public void markSubmitted(Instant now) {
-        requireStatus(DocumentStatus.SIGNED);
+    public void markSubmitted(
+            Instant now
+    ) {
 
-        this.status = DocumentStatus.SUBMITTED;
-        this.submittedAt = requireTime(now);
+        requireStatus(
+                DocumentStatus.SIGNED,
+                DocumentStatus.RETRY_PENDING
+        );
 
-        touch(now);
+        this.status =
+                DocumentStatus.SUBMITTED;
+
+        this.submittedAt =
+                requireTime(
+                        now
+                );
+
+        touch(
+                now
+        );
     }
 
     public void markAuthorized(Instant now) {
-        requireStatus(DocumentStatus.SUBMITTED);
+        markAuthorized(now, now);
+    }
+
+    public void markAuthorized(
+            Instant sriAuthorizedAt,
+            Instant transitionAt
+    ) {
+        requireStatus(
+                DocumentStatus.SUBMITTED,
+                DocumentStatus.RETRY_PENDING
+        );
+
+        Instant authorizationTime =
+                requireTime(sriAuthorizedAt);
+
+        Instant updateTime =
+                requireTime(transitionAt);
 
         this.status = DocumentStatus.AUTHORIZED;
-        this.authorizedAt = requireTime(now);
+        this.authorizedAt = authorizationTime;
 
-        touch(now);
+        touch(updateTime);
     }
 
     public void markRejected(Instant now) {
@@ -301,15 +330,20 @@ public final class Document {
         touch(now);
     }
 
-    public void scheduleRetry(Instant now) {
+    public void scheduleRetry(
+            Instant now
+    ) {
+
         requireStatus(
-                DocumentStatus.SUBMITTED,
-                DocumentStatus.REJECTED
+                DocumentStatus.SUBMITTED
         );
 
-        this.status = DocumentStatus.RETRY_PENDING;
+        this.status =
+                DocumentStatus.RETRY_PENDING;
 
-        touch(now);
+        touch(
+                now
+        );
     }
 
     public void markFailed(Instant now) {

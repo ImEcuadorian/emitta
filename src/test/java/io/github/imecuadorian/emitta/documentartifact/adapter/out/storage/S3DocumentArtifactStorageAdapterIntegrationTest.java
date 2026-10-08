@@ -294,4 +294,5 @@ class S3DocumentArtifactStorageAdapterIntegrationTest {
 
         return value;
     }
+
 }
