@@ -18,7 +18,7 @@ import java.util.UUID;
         prefix = "emitta.fiscal.worker",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public class FiscalDocumentListener {
 

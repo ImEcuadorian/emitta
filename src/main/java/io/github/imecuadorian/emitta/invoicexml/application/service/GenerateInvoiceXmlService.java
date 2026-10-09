@@ -8,6 +8,7 @@ import io.github.imecuadorian.emitta.invoicexml.application.port.out.InvoiceXmlG
 import io.github.imecuadorian.emitta.invoicexml.application.port.out.InvoiceXmlSourcePort;
 import io.github.imecuadorian.emitta.invoicexml.domain.GeneratedInvoiceXml;
 import io.github.imecuadorian.emitta.shared.fiscal.FiscalEnvironment;
+import io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicyPort;
 
 import java.math.BigDecimal;
 import java.time.ZoneId;
@@ -30,44 +31,16 @@ public final class GenerateInvoiceXmlService
 
     private final InvoiceXmlGeneratorPort generatorPort;
 
-    private final String providerRuc;
+    private final ProviderPolicyPort policyPort;
 
     private final ZoneId issueZone;
 
-    public GenerateInvoiceXmlService(
-            InvoiceXmlSourcePort sourcePort,
-            InvoiceXmlGeneratorPort generatorPort,
-            String providerRuc,
-            ZoneId issueZone
-    ) {
-
-        this.sourcePort =
-                Objects.requireNonNull(
-                        sourcePort
-                );
-
-        this.generatorPort =
-                Objects.requireNonNull(
-                        generatorPort
-                );
-
-        if (providerRuc == null
-                || !providerRuc.matches(
-                "\\d{13}"
-        )) {
-
-            throw new IllegalArgumentException(
-                    "Provider RUC must contain exactly 13 digits"
-            );
-        }
-
-        this.providerRuc =
-                providerRuc;
-
-        this.issueZone =
-                Objects.requireNonNull(
-                        issueZone
-                );
+    public GenerateInvoiceXmlService(InvoiceXmlSourcePort sourcePort, InvoiceXmlGeneratorPort generatorPort,
+                                    ProviderPolicyPort policyPort, ZoneId issueZone) {
+        this.sourcePort = Objects.requireNonNull(sourcePort);
+        this.generatorPort = Objects.requireNonNull(generatorPort);
+        this.policyPort = Objects.requireNonNull(policyPort);
+        this.issueZone = Objects.requireNonNull(issueZone);
     }
 
     @Override
@@ -98,7 +71,7 @@ public final class GenerateInvoiceXmlService
 
         InvoiceXmlData data =
                 toInvoiceXmlData(
-                        source
+                        source, policyPort.resolve(documentId).xmlProviderRuc()
                 );
 
         return generatorPort.generate(
@@ -107,7 +80,7 @@ public final class GenerateInvoiceXmlService
     }
 
     private InvoiceXmlData toInvoiceXmlData(
-            InvoiceXmlSourceData source
+            InvoiceXmlSourceData source, String providerRuc
     ) {
 
         return new InvoiceXmlData(

@@ -507,6 +507,11 @@ public final class SriInvoiceXmlGenerator
             InvoiceXmlData data
     ) throws XMLStreamException {
 
+        // Only a reviewed policy may supply null. XSD optionality alone is not a legal exemption.
+        if (data.providerRuc() == null) return;
+        if (!data.providerRuc().matches("[0-9]{13}"))
+            throw new IllegalArgumentException("Provider RUC must contain exactly 13 digits");
+
         xml.writeStartElement(
                 "infoAdicional"
         );

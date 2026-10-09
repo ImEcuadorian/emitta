@@ -290,7 +290,7 @@ class SubmitFiscalDocumentToSriServiceTest {
     }
 
     @Test
-    void shouldScheduleRetryWhenSriReceptionFails() {
+    void shouldKeepSubmissionPendingReconciliationWhenSriReceptionFails() {
 
         stubStartedAttempt();
 
@@ -328,7 +328,7 @@ class SubmitFiscalDocumentToSriServiceTest {
         );
 
         verify(
-                scheduleDocumentRetryUseCase
+                scheduleDocumentRetryUseCase, never()
         ).scheduleRetry(
                 DOCUMENT_ID
         );
@@ -412,7 +412,7 @@ class SubmitFiscalDocumentToSriServiceTest {
     }
 
     @Test
-    void shouldPersistTechnicalFailureBeforeRetry() {
+    void shouldPersistUnknownRemoteOutcomeWithoutRetry() {
 
         SriReceptionAttempt attempt =
                 new SriReceptionAttempt(
@@ -477,9 +477,7 @@ class SubmitFiscalDocumentToSriServiceTest {
                 NOW
         );
 
-        order.verify(
-                scheduleDocumentRetryUseCase
-        ).scheduleRetry(DOCUMENT_ID);
+        verifyNoInteractions(scheduleDocumentRetryUseCase);
     }
 
     private void stubStartedAttempt() {

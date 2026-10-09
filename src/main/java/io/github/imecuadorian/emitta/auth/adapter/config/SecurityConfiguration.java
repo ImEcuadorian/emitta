@@ -31,9 +31,12 @@ import java.util.Base64;
 public class SecurityConfiguration {
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(
+            type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            SecurityProblemHandler problems
+            SecurityProblemHandler problems,
+            TenantAdministrationAccess tenantAccess
     ) throws Exception {
 
         http
@@ -70,12 +73,24 @@ public class SecurityConfiguration {
                                                 HttpMethod.POST,
                                                 "/api/v1/invoices"
                                         )
-                                        .hasAuthority(
-                                                "SCOPE_invoices:write"
-                                        )
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allowsInvoice(authentication.get())))
 
+                                        .requestMatchers(HttpMethod.POST, "/api/v1/tenants")
+                                        .hasAuthority("SCOPE_platform:admin")
+                                        .requestMatchers(HttpMethod.POST, "/api/v1/tenants/*/taxpayers")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "taxpayers:write")))
+                                        .requestMatchers(HttpMethod.POST, "/api/v1/taxpayers/*/establishments")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "establishments:write")))
+                                        .requestMatchers(HttpMethod.POST, "/api/v1/establishments/*/points-of-issue")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "points-of-issue:write")))
+                                        .requestMatchers("/actuator/info", "/actuator/metrics/**")
+                                        .hasAuthority("SCOPE_operations:read")
                                         .anyRequest()
-                                        .authenticated()
+                                        .denyAll()
                 )
                 .oauth2ResourceServer(
                         oauth2 ->

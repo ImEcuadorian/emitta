@@ -375,7 +375,7 @@ class PostgreSqlInvoiceXmlSourceAdapterIntegrationTest {
                 new GenerateInvoiceXmlService(
                         adapter,
                         new SriInvoiceXmlGenerator(),
-                        "1799999999001",
+                        ignored -> io.github.imecuadorian.emitta.support.TestProviderPolicies.external("1799999999001"),
                         ZoneId.of(
                                 "America/Guayaquil"
                         )

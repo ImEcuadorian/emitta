@@ -50,7 +50,7 @@ class GenerateInvoiceXmlServiceTest {
                 new GenerateInvoiceXmlService(
                         sourcePort,
                         generatorPort,
-                        "1799999999001",
+                        ignored -> io.github.imecuadorian.emitta.support.TestProviderPolicies.external("1799999999001"),
                         ZoneId.of(
                                 "America/Guayaquil"
                         )
@@ -167,6 +167,16 @@ class GenerateInvoiceXmlServiceTest {
                 "1799999999001",
                 data.providerRuc()
         );
+    }
+
+    @Test
+    void shouldBlockUnresolvedScenarioBeforeXmlGeneration() {
+        when(sourcePort.findByDocumentId(DOCUMENT_ID)).thenReturn(Optional.of(source()));
+        var blocked = new GenerateInvoiceXmlService(sourcePort, generatorPort,
+                ignored -> io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicy.unresolved(),
+                ZoneId.of("America/Guayaquil"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> blocked.generate(DOCUMENT_ID));
+        org.mockito.Mockito.verifyNoInteractions(generatorPort);
     }
 
     private static InvoiceXmlSourceData source() {

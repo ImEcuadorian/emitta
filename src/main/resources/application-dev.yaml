@@ -1,0 +1,13 @@
+# Explicit CLI overrides are required for controlled integration runs.
+emitta:
+  outbox:
+    publisher:
+      enabled: false
+  fiscal:
+    worker:
+      enabled: false
+  sri:
+    reception:
+      enabled: false
+    authorization:
+      enabled: false

@@ -39,6 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.http.HttpClient;
 import java.time.Clock;
+import io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicyPort;
+import io.github.imecuadorian.emitta.srireception.application.service.ProviderSubmissionGuard;
 
 @Configuration
 @ConditionalOnProperty(
@@ -50,6 +52,12 @@ import java.time.Clock;
         SriReceptionProperties.class
 )
 public class SriReceptionConfiguration {
+
+    @Bean
+    ProviderSubmissionGuard providerSubmissionGuard(ProviderPolicyPort policy,
+                                                   LoadDocumentArtifactUseCase artifacts) {
+        return new ProviderSubmissionGuard(policy, artifacts);
+    }
 
     @Bean
     HttpClient sriReceptionHttpClient(
@@ -149,14 +157,19 @@ public class SriReceptionConfiguration {
     submitSignedDocumentToSriUseCase(
             DocumentRepository documentRepository,
             LoadDocumentArtifactUseCase loadDocumentArtifactUseCase,
-            SriReceptionPort sriReceptionPort
+            SriReceptionPort sriReceptionPort,
+            ProviderSubmissionGuard providerGuard
     ) {
 
-        return new SubmitSignedDocumentToSriService(
+        var delegate = new SubmitSignedDocumentToSriService(
                 documentRepository,
                 loadDocumentArtifactUseCase,
                 sriReceptionPort
         );
+        return documentId -> {
+            providerGuard.verify(documentId);
+            return delegate.submit(documentId);
+        };
     }
 
     @Bean
@@ -180,10 +193,11 @@ public class SriReceptionConfiguration {
             MarkDocumentRejectedUseCase markDocumentRejectedUseCase,
             ScheduleDocumentRetryUseCase scheduleDocumentRetryUseCase,
             SriReceptionAttemptPort sriReceptionAttemptPort,
-            Clock clock
+            Clock clock,
+            ProviderSubmissionGuard providerGuard
     ) {
 
-        return new SubmitFiscalDocumentToSriService(
+        var delegate = new SubmitFiscalDocumentToSriService(
                 markDocumentSubmittedUseCase,
                 submitSignedDocumentToSriUseCase,
                 markDocumentRejectedUseCase,
@@ -191,5 +205,9 @@ public class SriReceptionConfiguration {
                 sriReceptionAttemptPort,
                 clock
         );
+        return documentId -> {
+            providerGuard.verify(documentId);
+            return delegate.submit(documentId);
+        };
     }
 }

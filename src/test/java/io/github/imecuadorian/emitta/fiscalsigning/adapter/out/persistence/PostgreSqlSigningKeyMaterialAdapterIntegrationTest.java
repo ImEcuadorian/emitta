@@ -53,6 +53,12 @@ class PostgreSqlSigningKeyMaterialAdapterIntegrationTest {
                     "postgres:18"
             );
 
+    private static final io.github.imecuadorian.emitta.support.TestSigningCertificates.Fixture FIXTURE =
+            io.github.imecuadorian.emitta.support.TestSigningCertificates.create("test-password");
+
+    private static final io.github.imecuadorian.emitta.support.TestSigningCertificates.Fixture ROTATED =
+            io.github.imecuadorian.emitta.support.TestSigningCertificates.create("test-password");
+
     private static JdbcClient jdbcClient;
 
     private static PostgreSqlSigningKeyMaterialAdapter adapter;
@@ -150,10 +156,7 @@ class PostgreSqlSigningKeyMaterialAdapterIntegrationTest {
                 UUID.randomUUID();
 
         byte[] pkcs12Content =
-                "TEST-PKCS12-CONTENT"
-                        .getBytes(
-                                StandardCharsets.UTF_8
-                        );
+                FIXTURE.pkcs12();
 
         byte[] passwordBytes =
                 "test-password"
@@ -293,16 +296,10 @@ class PostgreSqlSigningKeyMaterialAdapterIntegrationTest {
                 UUID.randomUUID();
 
         byte[] originalPkcs12 =
-                "ORIGINAL-PKCS12"
-                        .getBytes(
-                                StandardCharsets.UTF_8
-                        );
+                FIXTURE.pkcs12();
 
         byte[] rotatedPkcs12 =
-                "ROTATED-PKCS12"
-                        .getBytes(
-                                StandardCharsets.UTF_8
-                        );
+                ROTATED.pkcs12();
 
         byte[] password =
                 "test-password"
@@ -707,6 +704,40 @@ class PostgreSqlSigningKeyMaterialAdapterIntegrationTest {
         );
     }
 
+    @Test
+    void shouldRequireReviewedRucAuthorityAndPreserveTenantBoundary() {
+        UUID tenant=UUID.randomUUID(), taxpayer=UUID.randomUUID(), establishment=UUID.randomUUID(), point=UUID.randomUUID();
+        UUID document=UUID.randomUUID();
+        seedFiscalHierarchy(tenant,taxpayer,establishment,point);
+        try (var material = new io.github.imecuadorian.emitta.fiscalsigning.application.model.SigningKeyMaterial(
+                FIXTURE.pkcs12(),"test-password".toCharArray(),"emitta-test")) {
+            var validated = io.github.imecuadorian.emitta.fiscalsigning.adapter.out.crypto.Pkcs12CertificateValidator
+                    .validate(material,SIGNING_TIME,java.util.List.of(FIXTURE.ca()));
+            assertThrows(RuntimeException.class,()->adapter.registerReviewedCertificate(UUID.randomUUID(),taxpayer,
+                    "1790012345001",material,validated,"a".repeat(64),SIGNING_TIME));
+            UUID certificate=adapter.registerReviewedCertificate(tenant,taxpayer,"1790012345001",material,
+                    validated,"a".repeat(64),SIGNING_TIME);
+            insertDocument(document,tenant,taxpayer,point);
+            jdbcClient.sql("UPDATE certificates SET authorized_ruc='1790012345002' WHERE id=:id").param("id",certificate).update();
+            assertThrows(SigningCertificateException.class,()->adapter.loadForDocument(document,SIGNING_TIME));
+            assertDocumentHasNoAssignedCertificate(document);
+            jdbcClient.sql("""
+                    UPDATE certificates SET authorized_ruc=NULL, authorization_evidence_sha256=NULL,
+                        authorized_at=NULL,authorization_trust_anchor=NULL WHERE id=:id
+                    """).param("id",certificate).update();
+            assertThrows(SigningCertificateException.class,()->adapter.loadForDocument(document,SIGNING_TIME));
+            assertDocumentHasNoAssignedCertificate(document);
+            adapter.registerReviewedCertificate(tenant,taxpayer,"1790012345001",material,validated,"a".repeat(64),SIGNING_TIME);
+            try (var selected=adapter.loadForDocument(document,SIGNING_TIME).keyMaterial()) {
+                assertArrayEquals(FIXTURE.pkcs12(),selected.pkcs12Content());
+            }
+            // Authenticated encryption rejects tampering even when DB dates and authority look valid.
+            jdbcClient.sql("UPDATE certificates SET encrypted_content=:bytes WHERE id=:id")
+                    .param("bytes",new byte[]{1,2,3}).param("id",certificate).update();
+            assertThrows(SigningCertificateException.class,()->adapter.loadForDocument(document,SIGNING_TIME));
+        }
+    }
+
     private static void insertCertificate(
             UUID certificateId,
             UUID taxpayerId,
@@ -810,6 +841,18 @@ class PostgreSqlSigningKeyMaterialAdapterIntegrationTest {
                         encryptedPassword
                 )
                 .update();
+        byte[] decoded = secretCipher.decrypt(encryptedContent,
+                CertificateSecretAssociatedData.content(taxpayerId,certificateId));
+        var fixture = java.util.Arrays.equals(decoded, ROTATED.pkcs12()) ? ROTATED : FIXTURE;
+        java.util.Arrays.fill(decoded,(byte)0);
+        try {
+            jdbcClient.sql("""
+                    UPDATE certificates SET fingerprint=:fp, authorized_ruc='1790012345001',
+                        authorization_evidence_sha256=:evidence, authorized_at=CURRENT_TIMESTAMP,
+                        authorization_trust_anchor=:anchor WHERE id=:id
+                    """).param("fp", io.github.imecuadorian.emitta.fiscalsigning.adapter.out.crypto.Pkcs12CertificateValidator.sha256(fixture.leaf().getEncoded()))
+                    .param("evidence","a".repeat(64)).param("anchor",fixture.ca().getEncoded()).param("id",certificateId).update();
+        } catch (Exception e) { throw new IllegalStateException(e); }
     }
 
     private static void seedFiscalHierarchy(

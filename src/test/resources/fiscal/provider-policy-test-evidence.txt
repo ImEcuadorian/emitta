@@ -1,0 +1,1 @@
+SYNTHETIC TEST ONLY. Reviewed external-provider fixture; never authorizes a real SRI submission.

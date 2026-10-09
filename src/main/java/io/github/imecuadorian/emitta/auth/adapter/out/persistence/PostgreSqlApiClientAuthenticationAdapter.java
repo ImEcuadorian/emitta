@@ -45,6 +45,7 @@ public class PostgreSqlApiClientAuthenticationAdapter
                             status
                         FROM emitta.api_clients
                         WHERE client_id = ?
+                          AND EXISTS (SELECT 1 FROM emitta.tenants t WHERE t.id=api_clients.tenant_id AND t.status='ACTIVE')
                         """,
                         (rs, rowNum) ->
                                 new ApiClientRow(

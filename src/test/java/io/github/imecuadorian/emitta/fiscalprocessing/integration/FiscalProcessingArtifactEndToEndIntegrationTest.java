@@ -80,8 +80,17 @@ import static org.junit.jupiter.api.Assertions.*;
                 "emitta.fiscal.worker.enabled=true",
                 "emitta.artifacts.storage.enabled=true",
                 "emitta.fiscal.provider-ruc=1799999999001",
+                "emitta.fiscal.provider-policy.default-profile=external-test",
+                "emitta.fiscal.provider-policy.profiles.external-test.mode=EXTERNAL_PROVIDER",
+                "emitta.fiscal.provider-policy.profiles.external-test.ruc=1799999999001",
+                "emitta.fiscal.provider-policy.profiles.external-test.justification=Synthetic test only",
+                "emitta.fiscal.provider-policy.profiles.external-test.normative-reference=https://www.sri.gob.ec/facturacion-electronica",
+                "emitta.fiscal.provider-policy.profiles.external-test.evidence-path=src/test/resources/fiscal/provider-policy-test-evidence.txt",
+                "emitta.fiscal.provider-policy.profiles.external-test.evidence-sha256=af040e9d52eaa1545b50ade55f5c3752450a036235850fd7dd17c643d258f53a",
                 "spring.rabbitmq.publisher-confirm-type=correlated",
                 "emitta.signing.enabled=true",
+                "emitta.sri.reception.enabled=false",
+                "emitta.sri.authorization.enabled=false",
                 "spring.datasource.hikari.schema=emitta"
         }
 )
@@ -213,6 +222,9 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
     private CreateDocumentUseCase createDocumentUseCase;
 
     @Autowired
+    private io.github.imecuadorian.emitta.invoice.application.port.in.CreateInvoiceUseCase createInvoiceUseCase;
+
+    @Autowired
     private PublishPendingOutboxUseCase
             publishPendingOutboxUseCase;
 
@@ -340,24 +352,20 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
     }
 
     @Test
-    void shouldProcessInvoiceAndPersistUnsignedXmlEndToEnd()
+    void shouldCreateInvoiceAndPersistVerifiedSignedXmlEndToEnd()
             throws Exception {
 
         /*
          * 1. Create the fiscal document and Outbox event.
          */
-        CreateDocumentResult created =
-                createDocumentUseCase.create(
-                        new CreateDocumentCommand(
-                                tenantId,
-                                pointOfIssueId,
-                                DocumentType.INVOICE,
-                                FiscalEnvironment.TEST,
-                                "artifact-e2e-"
-                                        + UUID.randomUUID(),
-                                ISSUED_AT
-                        )
-                );
+        var created = createInvoiceUseCase.create(new io.github.imecuadorian.emitta.invoice.application.command.CreateInvoiceCommand(
+                tenantId,pointOfIssueId,FiscalEnvironment.TEST,"artifact-e2e-"+UUID.randomUUID(),ISSUED_AT,null,
+                new io.github.imecuadorian.emitta.invoice.application.command.InvoiceBuyerCommand("07","9999999999999","CONSUMIDOR FINAL",null,null),
+                List.of(new io.github.imecuadorian.emitta.invoice.application.command.InvoiceItemCommand("P001","Producto E2E",
+                        new java.math.BigDecimal("2"),new java.math.BigDecimal("10"),new java.math.BigDecimal("2"),
+                        List.of(new io.github.imecuadorian.emitta.invoice.application.command.InvoiceTaxCommand("2","4",new java.math.BigDecimal("15"))))),
+                List.of(new io.github.imecuadorian.emitta.invoice.application.command.InvoicePaymentCommand("01",new java.math.BigDecimal("20.70"),null,null)),
+                new java.math.BigDecimal("20.70")));
 
         assertTrue(
                 created.created()
@@ -372,14 +380,6 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
         UUID documentId =
                 created.document()
                         .getId();
-
-        /*
-         * 2. Persist the invoice data required by the XML source
-         * adapter before the asynchronous worker receives the event.
-         */
-        seedInvoice(
-                documentId
-        );
 
         /*
          * 3. Publish the pending Outbox event to RabbitMQ.
@@ -574,6 +574,9 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
                         """,
                         documentId
                 );
+
+        System.out.printf("E2E TEST SIGNED document=%s unsigned-sha256=%s signed-sha256=%s%n",
+                documentId,persistedSha256,signedArtifact.get("sha256"));
 
         assertEquals(
                 "SIGNED_XML",
@@ -1236,24 +1239,10 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
         UUID certificateId =
                 UUID.randomUUID();
 
-        Path pkcs12Path =
-                generatePkcs12();
-
-        byte[] pkcs12 =
-                Files.readAllBytes(
-                        pkcs12Path
-                );
-
-        byte[] password =
-                CERTIFICATE_PASSWORD
-                        .getBytes(
-                                StandardCharsets.UTF_8
-                        );
-
-        signingCertificate =
-                loadCertificate(
-                        pkcs12Path
-                );
+        var fixture = io.github.imecuadorian.emitta.support.TestSigningCertificates.create(CERTIFICATE_PASSWORD);
+        byte[] pkcs12 = fixture.pkcs12();
+        byte[] password = CERTIFICATE_PASSWORD.getBytes(StandardCharsets.UTF_8);
+        signingCertificate = fixture.leaf();
 
         AesGcmSecretCipher secretCipher =
                 new AesGcmSecretCipher(
@@ -1322,6 +1311,12 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
                 encryptedPassword
         );
 
+        jdbcTemplate.update("""
+                UPDATE emitta.certificates SET authorized_ruc='1790012345001',
+                    authorization_evidence_sha256=?, authorized_at=CURRENT_TIMESTAMP,
+                    authorization_trust_anchor=? WHERE id=?
+                """, "a".repeat(64), fixture.ca().getEncoded(), certificateId);
+
         jdbcTemplate.update(
                 """
                 UPDATE emitta.taxpayers
@@ -1333,153 +1328,6 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
                 certificateId,
                 taxpayerId
         );
-    }
-
-    private Path generatePkcs12()
-            throws Exception {
-
-        Path pkcs12Path =
-                tempDirectory.resolve(
-                        "emitta-e2e-test.p12"
-                );
-
-        Path keytool =
-                resolveKeytool();
-
-        Process process =
-                new ProcessBuilder(
-                        keytool.toString(),
-                        "-genkeypair",
-                        "-alias",
-                        CERTIFICATE_ALIAS,
-                        "-keyalg",
-                        "RSA",
-                        "-keysize",
-                        "2048",
-                        "-sigalg",
-                        "SHA256withRSA",
-                        "-dname",
-                        "CN=Emitta E2E Test, OU=QA, O=Emitta, L=Quito, C=EC",
-                        "-validity",
-                        "3650",
-                        "-storetype",
-                        "PKCS12",
-                        "-keystore",
-                        pkcs12Path.toString(),
-                        "-storepass",
-                        CERTIFICATE_PASSWORD,
-                        "-keypass",
-                        CERTIFICATE_PASSWORD,
-                        "-noprompt"
-                )
-                        .redirectErrorStream(
-                                true
-                        )
-                        .start();
-
-        String output;
-
-        try (
-                InputStream input =
-                        process.getInputStream()
-        ) {
-
-            output =
-                    new String(
-                            input.readAllBytes(),
-                            StandardCharsets.UTF_8
-                    );
-        }
-
-        int exitCode =
-                process.waitFor();
-
-        assertEquals(
-                0,
-                exitCode,
-                () ->
-                        "keytool failed:\n"
-                                + output
-        );
-
-        assertTrue(
-                Files.exists(
-                        pkcs12Path
-                )
-        );
-
-        return pkcs12Path;
-    }
-
-    private X509Certificate loadCertificate(
-            Path pkcs12Path
-    ) throws Exception {
-
-        KeyStore keyStore =
-                KeyStore.getInstance(
-                        "PKCS12"
-                );
-
-        try (
-                InputStream input =
-                        Files.newInputStream(
-                                pkcs12Path
-                        )
-        ) {
-
-            keyStore.load(
-                    input,
-                    CERTIFICATE_PASSWORD
-                            .toCharArray()
-            );
-        }
-
-        return (X509Certificate)
-                keyStore.getCertificate(
-                        CERTIFICATE_ALIAS
-                );
-    }
-
-    private static Path resolveKeytool() {
-
-        boolean windows =
-                System.getProperty(
-                                "os.name"
-                        )
-                        .toLowerCase(
-                                Locale.ROOT
-                        )
-                        .contains(
-                                "win"
-                        );
-
-        String executable =
-                windows
-                        ? "keytool.exe"
-                        : "keytool";
-
-        Path keytool =
-                Path.of(
-                        System.getProperty(
-                                "java.home"
-                        ),
-                        "bin",
-                        executable
-                );
-
-        if (
-                !Files.isRegularFile(
-                        keytool
-                )
-        ) {
-
-            throw new IllegalStateException(
-                    "keytool was not found at: "
-                            + keytool
-            );
-        }
-
-        return keytool;
     }
 
     private static Document parseXml(

@@ -104,7 +104,8 @@ public final class SubmitFiscalDocumentToSriService
         } catch (SriReceptionException exception) {
 
             /*
-             * Record the technical failure before scheduling retry.
+             * The remote outcome is unknown (including timeout after acceptance).
+             * Keep SUBMITTED for reconciliation by access key; never auto-resend.
              */
             try {
 
@@ -125,10 +126,6 @@ public final class SubmitFiscalDocumentToSriService
 
                 throw exception;
             }
-
-            scheduleDocumentRetryUseCase.scheduleRetry(
-                    documentId
-            );
 
             throw exception;
         }

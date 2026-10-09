@@ -73,6 +73,7 @@ public class InvoiceExceptionHandler {
 
     @ExceptionHandler({
             DocumentFiscalResourceNotFoundException.class,
+            io.github.imecuadorian.emitta.invoice.application.exception.InvoiceCustomerUnavailableException.class,
             DocumentTenantMismatchException.class
     })
     ResponseEntity<ProblemDetail> fiscalResourceNotFound(

@@ -19,6 +19,18 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingRequestHeaderException.class})
+    ProblemDetail handleMalformedRequest(Exception exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request validation failed");
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    ProblemDetail handlePersistenceConflict(Exception exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Resource conflicts with existing data");
+    }
+
     private static final URI VALIDATION_ERROR_TYPE =
             URI.create(
                     "urn:emitta:problem:validation-error"

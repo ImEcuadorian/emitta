@@ -112,6 +112,7 @@ public class SigningConfiguration {
     @Bean
     MarkDocumentSignedUseCase markDocumentSignedUseCase(
             DocumentRepository documentRepository,
+            LoadDocumentArtifactUseCase artifactLoader,
             Clock clock,
             PlatformTransactionManager transactionManager
     ) {
@@ -119,7 +120,9 @@ public class SigningConfiguration {
         MarkDocumentSignedService service =
                 new MarkDocumentSignedService(
                         documentRepository,
-                        clock
+                        clock,
+                        artifactLoader,
+                        new io.github.imecuadorian.emitta.fiscalsigning.adapter.out.xml.JdkSriXadesSignatureVerifier()
                 );
 
         return new TransactionalMarkDocumentSignedUseCase(

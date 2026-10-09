@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 import java.time.ZoneId;
+import io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicyPort;
 
 @Configuration
 @ConditionalOnProperty(
@@ -41,8 +42,7 @@ public class InvoiceXmlConfiguration {
     @Bean
     GenerateInvoiceXmlUseCase generateInvoiceXmlUseCase(
             InvoiceXmlSourcePort sourcePort,
-            @Value("${emitta.fiscal.provider-ruc}")
-            String providerRuc,
+            ProviderPolicyPort providerPolicyPort,
             @Value("${emitta.fiscal.issue-zone}")
             String issueZone
     ) {
@@ -50,7 +50,7 @@ public class InvoiceXmlConfiguration {
         return new GenerateInvoiceXmlService(
                 sourcePort,
                 new SriInvoiceXmlGenerator(),
-                providerRuc,
+                providerPolicyPort,
                 ZoneId.of(
                         issueZone
                 )

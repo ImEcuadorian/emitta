@@ -2,7 +2,7 @@ package io.github.imecuadorian.emitta.fiscalsigning.application.model;
 
 import java.util.Objects;
 
-public final class SigningKeyMaterial {
+public final class SigningKeyMaterial implements AutoCloseable {
 
     private final byte[] pkcs12Content;
     private final char[] password;
@@ -53,6 +53,12 @@ public final class SigningKeyMaterial {
     public String alias() {
 
         return alias;
+    }
+
+    @Override
+    public void close() {
+        java.util.Arrays.fill(pkcs12Content, (byte) 0);
+        java.util.Arrays.fill(password, '\0');
     }
 
     private static String normalizeAlias(

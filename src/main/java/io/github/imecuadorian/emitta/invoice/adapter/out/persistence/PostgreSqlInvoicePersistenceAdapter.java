@@ -33,6 +33,13 @@ public class PostgreSqlInvoicePersistenceAdapter
     public void insert(
             Invoice invoice
     ) {
+        if (invoice.getCustomerId() != null && jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM emitta.customers c
+                JOIN emitta.documents d ON d.tenant_id=c.tenant_id
+                WHERE c.id=? AND d.id=? AND c.status='ACTIVE'
+                """, Integer.class, invoice.getCustomerId(), invoice.getDocumentId()) != 1) {
+            throw new io.github.imecuadorian.emitta.invoice.application.exception.InvoiceCustomerUnavailableException();
+        }
 
         jdbcTemplate.update(
                 """

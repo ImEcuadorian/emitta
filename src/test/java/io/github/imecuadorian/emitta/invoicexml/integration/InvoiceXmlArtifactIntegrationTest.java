@@ -143,7 +143,7 @@ class InvoiceXmlArtifactIntegrationTest {
                 new GenerateInvoiceXmlService(
                         sourceAdapter,
                         new SriInvoiceXmlGenerator(),
-                        PROVIDER_RUC,
+                        ignored -> io.github.imecuadorian.emitta.support.TestProviderPolicies.external(PROVIDER_RUC),
                         ZoneId.of(
                                 "America/Guayaquil"
                         )

@@ -88,8 +88,8 @@ services:
       MINIO_ROOT_PASSWORD: ${EMITTA_ARTIFACT_STORAGE_SECRET_KEY}
 
     ports:
-      - "59000:9000"
-      - "59001:9001"
+      - "127.0.0.1:${MINIO_HOST_PORT:-59000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-59001}:9001"
 
     volumes:
       - minio_data:/data

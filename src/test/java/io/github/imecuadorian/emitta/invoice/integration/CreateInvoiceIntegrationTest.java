@@ -672,6 +672,18 @@ class CreateInvoiceIntegrationTest {
         );
     }
 
+    @Test
+    void shouldRollbackInvoiceReferencingAnotherTenantsCustomer() {
+        UUID otherTenant = UUID.randomUUID(), otherCustomer = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO emitta.tenants(id,name,status) VALUES (?,'Other synthetic tenant','ACTIVE')", otherTenant);
+        jdbcTemplate.update("INSERT INTO emitta.customers(id,tenant_id,identification_type,identification,name,status) VALUES (?,?,'07','9999999999999','Synthetic customer','ACTIVE')", otherCustomer, otherTenant);
+        var original = successCommand();
+        var command = new CreateInvoiceCommand(original.tenantId(), original.pointOfIssueId(), original.environment(),
+                "cross-tenant-customer-test", original.issuedAt(), otherCustomer, original.buyer(), original.items(), original.payments(), original.expectedTotal());
+        assertThrows(io.github.imecuadorian.emitta.invoice.application.exception.InvoiceCustomerUnavailableException.class, () -> createInvoiceUseCase.create(command));
+        assertEquals(0, count("SELECT count(*) FROM emitta.documents WHERE tenant_id=? AND idempotency_key=?", tenantId, command.idempotencyKey()));
+    }
+
     private CreateInvoiceCommand successCommand() {
 
         return new CreateInvoiceCommand(

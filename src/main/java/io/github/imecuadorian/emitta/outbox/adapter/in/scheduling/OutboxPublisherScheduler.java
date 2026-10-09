@@ -12,7 +12,7 @@ import java.util.Objects;
         prefix = "emitta.outbox.publisher",
         name = "enabled",
         havingValue = "true",
-        matchIfMissing = true
+        matchIfMissing = false
 )
 public final class OutboxPublisherScheduler {
 

@@ -1,0 +1,14 @@
+# Production uses separate secret-store configuration, database, bucket and API credentials.
+# This profile never enables fiscal processing or SRI communication on its own.
+emitta:
+  outbox:
+    publisher:
+      enabled: false
+  fiscal:
+    worker:
+      enabled: false
+  sri:
+    reception:
+      enabled: false
+    authorization:
+      enabled: false

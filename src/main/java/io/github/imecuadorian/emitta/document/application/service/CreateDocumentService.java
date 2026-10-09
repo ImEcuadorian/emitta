@@ -155,12 +155,6 @@ public final class CreateDocumentService
                                         )
                         );
 
-        requireActive(
-                "Point of issue",
-                pointOfIssue.id(),
-                pointOfIssue.active()
-        );
-
         EstablishmentFiscalData establishment =
                 establishmentLookup
                         .findFiscalDataById(
@@ -173,12 +167,6 @@ public final class CreateDocumentService
                                                 pointOfIssue.establishmentId()
                                         )
                         );
-
-        requireActive(
-                "Establishment",
-                establishment.id(),
-                establishment.active()
-        );
 
         TaxpayerFiscalData taxpayer =
                 taxpayerLookup
@@ -193,12 +181,6 @@ public final class CreateDocumentService
                                         )
                         );
 
-        requireActive(
-                "Taxpayer",
-                taxpayer.id(),
-                taxpayer.active()
-        );
-
         if (!tenantId.equals(
                 taxpayer.tenantId()
         )) {
@@ -207,6 +189,24 @@ public final class CreateDocumentService
                     taxpayer.tenantId()
             );
         }
+
+        requireActive(
+                "Point of issue",
+                pointOfIssue.id(),
+                pointOfIssue.active()
+        );
+
+        requireActive(
+                "Establishment",
+                establishment.id(),
+                establishment.active()
+        );
+
+        requireActive(
+                "Taxpayer",
+                taxpayer.id(),
+                taxpayer.active()
+        );
 
         requireEnvironmentEnabled(
                 taxpayer,

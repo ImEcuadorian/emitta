@@ -4,6 +4,14 @@
 - Date: 2026-10-04
 - Decision makers: Emitta team
 
+## Amendment: 2026-10-08
+
+A non-commercial technical pilot is not automatically taxpayer-owned software or an identified commercial provider. See [the reviewed regulatory policy](../../provider-regulatory-policy.md).
+Provider profiles are trusted operator configuration, with exact tenant/taxpayer assignments and reviewed evidence.
+No issuer RUC or certificate is used to infer the provider. Legacy `EMITTA_PROVIDER_RUC` alone has no effect.
+Unresolved generation and submission fail closed; omission requires a verified case-specific review.
+The sections below describe the original commercial target, not approval of the current pilot.
+
 ## Context
 
 Emitta is designed as a B2B platform that provides electronic invoicing infrastructure to third-party systems such as POS platforms, ERPs, SaaS products, e-commerce platforms, and enterprise applications.
@@ -147,9 +155,9 @@ Tenant
 Production configuration may include:
 
 ```text
-EMITTA_PROVIDER_RUC
-EMITTA_PROVIDER_LEGAL_NAME
-EMITTA_PROVIDER_ESTABLISHMENT
+emitta.fiscal.provider-policy.default-profile
+emitta.fiscal.provider-policy.profiles
+emitta.fiscal.provider-policy.assignments
 ```
 
 Platform configuration will be managed through Doppler.
@@ -189,7 +197,7 @@ A new ADR must be created if Emitta later supports:
 - resellers;
 - provider selection per tenant.
 
-The initial architecture assumes one Emitta provider identity per deployment/environment.
+The implemented provider policy resolves profiles by tenant and taxpayer; a deployment-wide default is optional and must be reviewed explicitly.
 
 ## References
 

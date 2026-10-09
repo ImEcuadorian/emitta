@@ -14,6 +14,8 @@ import eu.europa.esig.dss.token.DSSPrivateKeyEntry;
 import eu.europa.esig.dss.token.Pkcs12SignatureToken;
 import eu.europa.esig.dss.xades.XAdESSignatureParameters;
 import eu.europa.esig.dss.xades.signature.XAdESService;
+import eu.europa.esig.dss.xades.reference.DSSReference;
+import eu.europa.esig.dss.xades.reference.EnvelopedSignatureTransform;
 
 import io.github.imecuadorian.emitta.fiscalsigning.application.exception.XmlSigningException;
 import io.github.imecuadorian.emitta.fiscalsigning.application.model.SignedXml;
@@ -101,6 +103,15 @@ public final class DssXadesBesXmlSigner
                             privateKey
                     );
 
+            // Override DSS's whole-document URI and XPath Filter2 defaults before digesting.
+            DSSReference comprobante = new DSSReference();
+            comprobante.setId("Reference-comprobante");
+            comprobante.setUri("#comprobante");
+            comprobante.setContents(document);
+            comprobante.setDigestMethodAlgorithm(DigestAlgorithm.SHA1);
+            comprobante.setTransforms(List.of(new EnvelopedSignatureTransform()));
+            parameters.setReferences(List.of(comprobante));
+
             CommonCertificateVerifier certificateVerifier =
                     new CommonCertificateVerifier();
 
@@ -129,11 +140,10 @@ public final class DssXadesBesXmlSigner
                             signatureValue
                     );
 
-            return new SignedXml(
-                    DSSUtils.toByteArray(
-                            signedDocument
-                    )
-            );
+            byte[] signedBytes = DSSUtils.toByteArray(signedDocument);
+            new io.github.imecuadorian.emitta.fiscalsigning.adapter.out.xml.JdkSriXadesSignatureVerifier()
+                    .verify(signedBytes, privateKey.getCertificate().getCertificate());
+            return new SignedXml(signedBytes);
 
         } catch (XmlSigningException exception) {
 

@@ -56,3 +56,24 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+# Private operations, certificate trust material, backups and fiscal evidence
+*.cer
+*.crl
+*.der
+*.dump
+*.backup
+*.bak
+*.log
+*.hprof
+/secrets/
+/private/
+/local/
+/evidence/
+/backups/
+/pilot-archive/
+/scripts/private/
+/docs/private/
+*.reception.json
+*.reception-error.json
+*.authorization-*.json
+*.signed.xml

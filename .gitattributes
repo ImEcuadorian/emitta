@@ -1,3 +1,4 @@
 /gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+/src/test/resources/fiscal/provider-policy-test-evidence.txt text eol=lf

@@ -18,8 +18,6 @@ import javax.xml.crypto.dsig.Transform;
 import javax.xml.crypto.dsig.XMLSignature;
 import javax.xml.crypto.dsig.XMLSignatureFactory;
 import javax.xml.crypto.dsig.dom.DOMValidateContext;
-import javax.xml.crypto.dsig.spec.XPathFilter2ParameterSpec;
-import javax.xml.crypto.dsig.spec.XPathType;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import java.io.ByteArrayInputStream;
@@ -54,6 +52,10 @@ public final class JdkSriXadesSignatureVerifier
 
     @Override
     public void verify(byte[] signedXml) {
+        verify(signedXml, null);
+    }
+
+    public void verify(byte[] signedXml, X509Certificate expectedCertificate) {
 
         Objects.requireNonNull(
                 signedXml,
@@ -123,6 +125,11 @@ public final class JdkSriXadesSignatureVerifier
 
             X509Certificate certificate =
                     extractCertificate(keyInfo);
+
+            if (expectedCertificate != null && !java.util.Arrays.equals(
+                    expectedCertificate.getEncoded(), certificate.getEncoded())) {
+                throw new XmlSignatureVerificationException("XML certificate differs from selected signing certificate");
+            }
 
             if (!(certificate.getPublicKey()
                     instanceof RSAPublicKey)) {
@@ -450,22 +457,6 @@ public final class JdkSriXadesSignatureVerifier
 
                 String algorithm = transform.getAlgorithm();
 
-                /*
-                 * DSS uses XPath Filter 2.0 for enveloped signatures.
-                 * Accept only the expected signature-subtraction profile.
-                 */
-                if (Transform.XPATH2.equals(algorithm)) {
-
-                    validateEnvelopedXPathFilter(
-                            transform,
-                            uri,
-                            rootId,
-                            root
-                    );
-
-                    continue;
-                }
-
                 if (!ALLOWED_TRANSFORMS.contains(algorithm)) {
 
                     throw new XmlSignatureVerificationException(
@@ -475,9 +466,16 @@ public final class JdkSriXadesSignatureVerifier
                 }
             }
 
-            if ("".equals(uri)
-                    || ("#" + rootId).equals(uri)) {
-
+            if ("#comprobante".equals(uri)) {
+                if (!"comprobante".equals(rootId)
+                        || !"comprobante".equals(root.getAttribute("id"))
+                        || documentSigned
+                        || reference.getTransforms().isEmpty()
+                        || !Transform.ENVELOPED.equals(reference.getTransforms().getFirst().getAlgorithm())
+                        || reference.getTransforms().stream().skip(1)
+                            .anyMatch(t -> Transform.ENVELOPED.equals(t.getAlgorithm()))) {
+                    throw new XmlSignatureVerificationException("Invalid SRI comprobante reference or enveloped transform");
+                }
                 documentSigned = true;
             }
 
@@ -486,7 +484,14 @@ public final class JdkSriXadesSignatureVerifier
             }
 
             if (("#" + signedPropertiesId).equals(uri)) {
+                if (!"http://uri.etsi.org/01903#SignedProperties".equals(reference.getType())) {
+                    throw new XmlSignatureVerificationException("Invalid SignedProperties reference type");
+                }
                 signedPropertiesProtected = true;
+            }
+            if (!"#comprobante".equals(uri) && !("#" + keyInfoId).equals(uri)
+                    && !("#" + signedPropertiesId).equals(uri)) {
+                throw new XmlSignatureVerificationException("Unexpected SRI signed reference");
             }
         }
 
@@ -500,162 +505,4 @@ public final class JdkSriXadesSignatureVerifier
         }
     }
 
-    private static void validateEnvelopedXPathFilter(
-            Transform transform,
-            String referenceUri,
-            String rootId,
-            Element root
-    ) {
-
-        /*
-         * XPath Filter 2.0 is allowed only for the
-         * reference protecting the complete fiscal document.
-         */
-        if (!"".equals(referenceUri)
-                && !("#" + rootId).equals(referenceUri)) {
-
-            throw new XmlSignatureVerificationException(
-                    "XPath Filter 2.0 is not allowed for this reference"
-            );
-        }
-
-        if (!(transform.getParameterSpec()
-                instanceof XPathFilter2ParameterSpec parameters)) {
-
-            throw new XmlSignatureVerificationException(
-                    "Invalid XPath Filter 2.0 parameters"
-            );
-        }
-
-        var filters = parameters.getXPathList();
-
-        if (filters.size() != 1) {
-
-            throw new XmlSignatureVerificationException(
-                    "Expected exactly one XPath Filter 2.0 expression"
-            );
-        }
-
-        XPathType xpath = filters.getFirst();
-
-        /*
-         * Only subtraction is permitted.
-         * INTERSECT and UNION could alter the signed node-set.
-         */
-        if (xpath.getFilter() != XPathType.Filter.SUBTRACT) {
-
-            throw new XmlSignatureVerificationException(
-                    "Unsupported XPath Filter 2.0 operation"
-            );
-        }
-
-        String expression = xpath.getExpression().strip();
-
-        /*
-         * Only exclude XML Signature elements.
-         * Both expressions select Signature descendants.
-         */
-        if (!"descendant::ds:Signature".equals(expression)
-                && !"/descendant::ds:Signature".equals(expression)) {
-
-            throw new XmlSignatureVerificationException(
-                    "Unsupported XPath Filter 2.0 expression: "
-                            + expression
-            );
-        }
-
-        /*
-         * Namespace mappings may be inherited from ancestor
-         * XML elements and absent from XPathType.getNamespaceMap().
-         *
-         * Validate the effective namespace in the original DOM.
-         */
-        NodeList xpathNodes =
-                root.getElementsByTagNameNS(
-                        Transform.XPATH2,
-                        "XPath"
-                );
-
-        if (xpathNodes.getLength() != 1) {
-
-            throw new XmlSignatureVerificationException(
-                    "Expected exactly one XPath Filter 2.0 element"
-            );
-        }
-
-        Element xpathElement =
-                (Element) xpathNodes.item(0);
-
-        /*
-         * The DOM expression must match the expression
-         * unmarshalled by the XML signature provider.
-         */
-        if (!expression.equals(
-                xpathElement.getTextContent().strip()
-        )) {
-
-            throw new XmlSignatureVerificationException(
-                    "XPath Filter 2.0 expression mismatch"
-            );
-        }
-
-        /*
-         * Resolve the namespace from the actual XPath element,
-         * including namespace declarations inherited from ancestors.
-         */
-        String resolvedNamespace =
-                xpathElement.lookupNamespaceURI("ds");
-
-        if (!XMLDSIG.equals(resolvedNamespace)) {
-
-            throw new XmlSignatureVerificationException(
-                    "Invalid XPath Filter 2.0 namespace: "
-                            + resolvedNamespace
-            );
-        }
-
-        /*
-         * Require XPath to belong to a real XMLDSig Transform
-         * with the XPath Filter 2.0 algorithm.
-         */
-        Node parent = xpathElement.getParentNode();
-
-        if (!(parent instanceof Element transformElement)
-                || !XMLDSIG.equals(transformElement.getNamespaceURI())
-                || !"Transform".equals(transformElement.getLocalName())
-                || !Transform.XPATH2.equals(
-                transformElement.getAttribute("Algorithm")
-        )) {
-
-            throw new XmlSignatureVerificationException(
-                    "XPath Filter 2.0 has an invalid parent transform"
-            );
-        }
-
-        /*
-         * Ensure the transform belongs to the same reference
-         * currently being validated.
-         */
-        Node transformsNode = transformElement.getParentNode();
-
-        Node referenceNode =
-                transformsNode == null
-                        ? null
-                        : transformsNode.getParentNode();
-
-        if (!(transformsNode instanceof Element transformsElement)
-                || !XMLDSIG.equals(transformsElement.getNamespaceURI())
-                || !"Transforms".equals(transformsElement.getLocalName())
-                || !(referenceNode instanceof Element referenceElement)
-                || !XMLDSIG.equals(referenceElement.getNamespaceURI())
-                || !"Reference".equals(referenceElement.getLocalName())
-                || !referenceUri.equals(
-                referenceElement.getAttribute("URI")
-        )) {
-
-            throw new XmlSignatureVerificationException(
-                    "XPath Filter 2.0 does not belong to the expected reference"
-            );
-        }
-    }
 }

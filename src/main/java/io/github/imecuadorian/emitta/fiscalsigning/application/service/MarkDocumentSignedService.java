@@ -5,6 +5,9 @@ import io.github.imecuadorian.emitta.document.domain.Document;
 import io.github.imecuadorian.emitta.document.domain.DocumentStatus;
 import io.github.imecuadorian.emitta.fiscalsigning.application.port.in.MarkDocumentSignedUseCase;
 
+import io.github.imecuadorian.emitta.documentartifact.application.port.in.LoadDocumentArtifactUseCase;
+import io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactType;
+import io.github.imecuadorian.emitta.fiscalsigning.application.port.out.XmlSignatureVerifierPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
@@ -15,12 +18,18 @@ public final class MarkDocumentSignedService
 
     private final DocumentRepository documentRepository;
     private final Clock clock;
+    private final LoadDocumentArtifactUseCase artifactLoader;
+    private final XmlSignatureVerifierPort signatureVerifier;
 
     public MarkDocumentSignedService(
             DocumentRepository documentRepository,
-            Clock clock
+            Clock clock,
+            LoadDocumentArtifactUseCase artifactLoader,
+            XmlSignatureVerifierPort signatureVerifier
     ) {
 
+        this.artifactLoader = Objects.requireNonNull(artifactLoader);
+        this.signatureVerifier = Objects.requireNonNull(signatureVerifier);
         this.documentRepository =
                 Objects.requireNonNull(
                         documentRepository
@@ -79,6 +88,9 @@ public final class MarkDocumentSignedService
                             + document.getStatus()
             );
         }
+
+        // Revalidate the durably stored bytes before the transition, including recovery/redelivery.
+        signatureVerifier.verify(artifactLoader.load(documentId, DocumentArtifactType.SIGNED_XML).content());
 
         Instant now =
                 clock.instant();

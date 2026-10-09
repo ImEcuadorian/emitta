@@ -117,11 +117,14 @@ public final class SignFiscalDocumentService
                         signingTime
                 );
 
-        SignedXml signedXml =
+        SignedXml signedXml;
+        try (var material = resolvedKeyMaterial.keyMaterial()) {
+            signedXml =
                 xmlSignerPort.sign(
                         unsignedArtifact.content(),
-                        resolvedKeyMaterial.keyMaterial()
+                        material
                 );
+        }
 
         byte[] signedContent =
                 signedXml.content();

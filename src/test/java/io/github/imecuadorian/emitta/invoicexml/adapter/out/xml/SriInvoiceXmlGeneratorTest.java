@@ -265,6 +265,22 @@ class SriInvoiceXmlGeneratorTest {
     }
 
     private static InvoiceXmlData invoiceData() {
+        return invoiceData(TEST_PROVIDER_RUC);
+    }
+
+    @Test
+    void shouldOmitWholeAdditionalSectionOnlyForReviewedOmissionAndStillValidateXsd() throws Exception {
+        var policy = io.github.imecuadorian.emitta.support.TestProviderPolicies.omission();
+        var generated = generator.generate(invoiceData(policy.xmlProviderRuc()));
+        var document = parse(generated.content());
+        assertEquals(0, document.getElementsByTagName("infoAdicional").getLength());
+        assertEquals("1790012345001", document.getElementsByTagName("ruc").item(0).getTextContent());
+        assertDoesNotThrow(() -> new SriInvoiceXsdValidator().validate(generated.bytes()));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> generator.generate(invoiceData("")));
+    }
+
+    private static InvoiceXmlData invoiceData(String providerRuc) {
 
         return new InvoiceXmlData(
 
@@ -373,7 +389,7 @@ class SriInvoiceXmlGeneratorTest {
                         )
                 ),
 
-                TEST_PROVIDER_RUC
+                providerRuc
         );
     }
 

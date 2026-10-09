@@ -1,4 +1,9 @@
 spring:
+  profiles:
+    default: dev
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   application:
     name: emitta
 
@@ -93,19 +98,23 @@ management:
 
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: never
 
 emitta:
   outbox:
     publisher:
-      enabled: true
+      enabled: ${EMITTA_OUTBOX_PUBLISHER_ENABLED:false}
       fixed-delay-ms: 250
       initial-delay-ms: 1000
   fiscal:
     issue-zone: America/Guayaquil
-    provider-ruc: ${EMITTA_PROVIDER_RUC}
+    provider-policy:
+      default-profile: ${EMITTA_PROVIDER_POLICY_PROFILE:unresolved}
+      profiles:
+        unresolved:
+          mode: UNRESOLVED
     worker:
-      enabled: true
+      enabled: ${EMITTA_FISCAL_WORKER_ENABLED:false}
 
   security:
     jwt:

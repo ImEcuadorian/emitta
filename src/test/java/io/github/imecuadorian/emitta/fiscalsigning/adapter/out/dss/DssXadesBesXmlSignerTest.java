@@ -291,6 +291,25 @@ class DssXadesBesXmlSignerTest {
                         "Reference"
                 );
 
+        Element comprobanteReference = null;
+        for (int i = 0; i < references.getLength(); i++) {
+            Element ref = (Element) references.item(i);
+            assertFalse(ref.getAttribute("URI").isEmpty());
+            if ("#comprobante".equals(ref.getAttribute("URI"))) {
+                assertNull(comprobanteReference);
+                comprobanteReference = ref;
+            }
+        }
+        assertNotNull(comprobanteReference);
+        NodeList transforms = comprobanteReference.getElementsByTagNameNS(XMLDSIG_NAMESPACE, "Transform");
+        assertEquals(1, transforms.getLength());
+        assertEquals(javax.xml.crypto.dsig.Transform.ENVELOPED,
+                ((Element) transforms.item(0)).getAttribute("Algorithm"));
+        assertThrows(XmlSignatureVerificationException.class, () -> verifier.verify(
+                original.replace("URI=\"#comprobante\"", "URI=\"\"").getBytes(StandardCharsets.UTF_8)));
+        assertThrows(XmlSignatureVerificationException.class, () -> verifier.verify(
+                original.replace("id=\"comprobante\"", "id=\"otro\"").getBytes(StandardCharsets.UTF_8)));
+
         boolean keyInfoIsSigned =
                 false;
 

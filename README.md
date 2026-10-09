@@ -10,7 +10,7 @@
 
 ## 1. Project status
 
-Emitta is currently in the **architecture and foundation phase**.
+Emitta has an implemented REST API and a verified XML/signing/SRI certification workflow. See [API security and operations](docs/api-security-and-operations.md) for the current endpoints, scopes and deployment limitations. Fiscal workers and SRI communication are disabled by default.
 
 Implemented / configured so far:
 
@@ -42,23 +42,9 @@ Implemented / configured so far:
 - Local Docker-based infrastructure
 - ADR repository started
 
-Not yet implemented:
+Implemented business flow: JWT issuance, tenant/fiscal administration, tenant-scoped invoice creation with idempotency, XML 2.1.0 validation, DSS XAdES-BES signing, encrypted certificate storage and durable SRI reception/authorization workflows.
 
-- domain model / full ERD
-- JWT issuance flow
-- API clients / users
-- invoice endpoints
-- SRI adapter
-- XML generation rules
-- certificate storage
-- XAdES signing flow
-- RabbitMQ queues / DLQ
-- transactional outbox publisher
-- API Gateway
-- RLS policies
-- webhook delivery
-- k6 load and spike tests
-- production deployment
+Not yet implemented: certificate upload/rotation REST endpoints, invoice retrieval/artifact REST endpoints and customer-facing SRI submission/query endpoints. Production deployment and regulatory provider review remain operator responsibilities.
 
 ---
 

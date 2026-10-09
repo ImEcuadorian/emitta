@@ -44,6 +44,10 @@ class MarkDocumentSignedServiceTest {
     @Mock
     private DocumentRepository documentRepository;
 
+    @Mock
+    private io.github.imecuadorian.emitta.documentartifact.application.port.in.LoadDocumentArtifactUseCase artifactLoader;
+    @Mock
+    private io.github.imecuadorian.emitta.fiscalsigning.application.port.out.XmlSignatureVerifierPort signatureVerifier;
     private MarkDocumentSignedService service;
 
     @BeforeEach
@@ -55,8 +59,24 @@ class MarkDocumentSignedServiceTest {
                         Clock.fixed(
                                 NOW,
                                 ZoneOffset.UTC
-                        )
+                        ), artifactLoader, signatureVerifier
                 );
+    }
+
+    @Test
+    void shouldRejectInvalidSignedArtifactBeforeTransition() {
+        Document document = document(DocumentStatus.GENERATING);
+        when(documentRepository.findByIdForUpdate(DOCUMENT_ID)).thenReturn(Optional.of(document));
+        var loaded = org.mockito.Mockito.mock(io.github.imecuadorian.emitta.documentartifact.application.model.LoadedDocumentArtifact.class);
+        when(artifactLoader.load(DOCUMENT_ID, io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactType.SIGNED_XML)).thenReturn(loaded);
+        byte[] bytes = {1};
+        when(loaded.content()).thenReturn(bytes);
+        org.mockito.Mockito.doThrow(new io.github.imecuadorian.emitta.fiscalsigning.application.exception.XmlSignatureVerificationException("Missing comprobante reference"))
+                .when(signatureVerifier).verify(bytes);
+        assertThrows(io.github.imecuadorian.emitta.fiscalsigning.application.exception.XmlSignatureVerificationException.class,
+                () -> service.markSigned(DOCUMENT_ID));
+        assertEquals(DocumentStatus.GENERATING, document.getStatus());
+        verify(documentRepository, never()).save(document);
     }
 
     @Test
@@ -85,6 +105,9 @@ class MarkDocumentSignedServiceTest {
                 document
         );
 
+        var loaded = org.mockito.Mockito.mock(io.github.imecuadorian.emitta.documentartifact.application.model.LoadedDocumentArtifact.class);
+        when(artifactLoader.load(DOCUMENT_ID, io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactType.SIGNED_XML)).thenReturn(loaded);
+        when(loaded.content()).thenReturn(new byte[]{1});
         Document result =
                 service.markSigned(
                         DOCUMENT_ID

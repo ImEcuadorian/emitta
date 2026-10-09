@@ -455,6 +455,72 @@ class SecurityIntegrationTest {
         );
     }
 
+    @Test
+    void shouldRequireAdministrativeScopesAndIsolateAllParentResources() throws Exception {
+        createApiClient("admin-test-" + tenantId, "synthetic-secret", "taxpayers:write");
+        UUID client = jdbcTemplate.queryForObject("SELECT id FROM emitta.api_clients WHERE tenant_id=?", UUID.class, tenantId);
+        for (String scope : java.util.List.of("establishments:write", "points-of-issue:write"))
+            jdbcTemplate.update("INSERT INTO emitta.api_client_scopes(api_client_id,scope) VALUES (?,?)", client, scope);
+        String token = obtainToken("admin-test-" + tenantId, "synthetic-secret");
+        String taxpayerBody = "{\"ruc\":\"1790012345001\",\"legalName\":\"SYNTHETIC ISSUER\",\"mainAddress\":\"Synthetic address\"}";
+        String ownTaxpayer = mockMvc.perform(post("/api/v1/tenants/{tenant}/taxpayers", tenantId)
+                .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content(taxpayerBody))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        UUID taxpayer = UUID.fromString(jsonMapper.readTree(ownTaxpayer).get("id").asText());
+        String ownEstablishment = mockMvc.perform(post("/api/v1/taxpayers/{id}/establishments", taxpayer)
+                .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"001\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        UUID establishment = UUID.fromString(jsonMapper.readTree(ownEstablishment).get("id").asText());
+        mockMvc.perform(post("/api/v1/establishments/{id}/points-of-issue", establishment)
+                .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"001\"}"))
+                .andExpect(status().isCreated());
+        UUID otherTenant = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO emitta.tenants(id,name,status) VALUES (?,'Other synthetic tenant','ACTIVE')", otherTenant);
+        UUID originalTenant = tenantId;
+        tenantId = otherTenant;
+        createApiClient("other-test-" + otherTenant, "synthetic-secret", "taxpayers:write");
+        UUID otherClient = jdbcTemplate.queryForObject("SELECT id FROM emitta.api_clients WHERE tenant_id=?", UUID.class, otherTenant);
+        for (String scope : java.util.List.of("establishments:write", "points-of-issue:write"))
+            jdbcTemplate.update("INSERT INTO emitta.api_client_scopes(api_client_id,scope) VALUES (?,?)", otherClient, scope);
+        String otherToken = obtainToken("other-test-" + otherTenant, "synthetic-secret");
+        for (String path : java.util.List.of("/api/v1/tenants/"+originalTenant+"/taxpayers",
+                "/api/v1/taxpayers/"+taxpayer+"/establishments", "/api/v1/establishments/"+establishment+"/points-of-issue")) {
+            mockMvc.perform(post(path).header("Authorization", "Bearer " + otherToken)
+                    .contentType(MediaType.APPLICATION_JSON).content(path.endsWith("taxpayers") ? taxpayerBody : "{\"code\":\"002\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        mockMvc.perform(post("/api/v1/tenants").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Unauthorized tenant\"}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/tenants").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_platform:admin")))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Platform-managed synthetic tenant\"}"))
+                .andExpect(status().isCreated());
+        createApiClient("limited-test-"+otherTenant, "synthetic-secret", "invoices:write");
+        String limited = obtainToken("limited-test-"+otherTenant, "synthetic-secret");
+        mockMvc.perform(post("/api/v1/tenants/{tenant}/taxpayers", otherTenant)
+                .header("Authorization", "Bearer " + limited).contentType(MediaType.APPLICATION_JSON).content(taxpayerBody))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void shouldRejectAuthenticationForInactiveTenant() throws Exception {
+        createApiClient("inactive-test-"+tenantId, "synthetic-secret", "invoices:write");
+        String token = obtainToken("inactive-test-"+tenantId, "synthetic-secret");
+        mockMvc.perform(post("/api/v1/invoices").header("Authorization", "Bearer "+token)
+                .header("Idempotency-Key", "unknown-field-test").contentType(MediaType.APPLICATION_JSON)
+                .content(validInvoiceJson().replaceFirst("\\{", "{\"tenantId\":\""+tenantId+"\",")))
+                .andExpect(status().isBadRequest());
+        jdbcTemplate.update("UPDATE emitta.tenants SET status='DISABLED' WHERE id=?", tenantId);
+        mockMvc.perform(post("/api/v1/auth/token").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"clientId\":\"inactive-test-"+tenantId+"\",\"clientSecret\":\"synthetic-secret\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/invoices").header("Authorization", "Bearer "+token)
+                .header("Idempotency-Key", "inactive-test").contentType(MediaType.APPLICATION_JSON).content(validInvoiceJson()))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(createInvoiceUseCase);
+    }
+
     private static String validInvoiceJson() {
 
         return """
