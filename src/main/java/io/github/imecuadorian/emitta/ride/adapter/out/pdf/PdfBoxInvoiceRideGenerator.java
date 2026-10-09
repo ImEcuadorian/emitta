@@ -58,8 +58,9 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
                 renderHeader(writer, request);
                 renderBuyer(writer, invoice);
                 renderItems(writer, invoice.items());
-                renderTotals(writer, invoice);
+                renderAdditionalInformation(writer, invoice);
                 renderPayments(writer, invoice.payments());
+                renderTotals(writer, invoice);
                 writer.paragraph(
                         "Representacion impresa del documento electronico (RIDE). " +
                         "Los valores y datos fiscales corresponden al comprobante electronico.", NORMAL, 8f, BODY_WIDTH);
@@ -86,7 +87,6 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
             w.paragraph(v.tradeName(), NORMAL, 9f, BODY_WIDTH);
         }
         w.field("RUC emisor", v.ruc());
-        w.field("RUC proveedor", v.providerRuc());
         w.field("Direccion matriz", v.mainAddress());
         w.field("Direccion establecimiento", v.establishmentAddress());
         w.field("Ambiente", "1".equals(v.environmentCode()) ? "PRUEBAS" : "PRODUCCION");
@@ -162,6 +162,12 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
         w.text("IMPORTE TOTAL: " + money(invoice.total()) + " " + invoice.currency(),
                 LEFT, w.y, BOLD, 12f);
         w.y -= 25f;
+    }
+
+    private static void renderAdditionalInformation(PageWriter w, InvoiceXmlData invoice) throws IOException {
+        w.heading("INFORMACION ADICIONAL");
+        w.field("RUC Proveedor", invoice.providerRuc());
+        w.space(8f);
     }
 
     private static void renderPayments(PageWriter w, List<InvoiceXmlData.Payment> payments)
