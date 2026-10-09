@@ -86,6 +86,7 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
             w.paragraph(v.tradeName(), NORMAL, 9f, BODY_WIDTH);
         }
         w.field("RUC emisor", v.ruc());
+        w.field("RUC proveedor", v.providerRuc());
         w.field("Direccion matriz", v.mainAddress());
         w.field("Direccion establecimiento", v.establishmentAddress());
         w.field("Ambiente", "1".equals(v.environmentCode()) ? "PRUEBAS" : "PRODUCCION");
@@ -184,7 +185,7 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
                 accessKey, BarcodeFormat.CODE_128, 960, 48);
         w.ensure(43f);
         float width = BODY_WIDTH / matrix.getWidth();
-        w.stream.setNonStrokingColor(0, 0, 0);
+        w.stream.setNonStrokingColor(0f, 0f, 0f);
         for (int x = 0; x < matrix.getWidth(); x++) {
             if (matrix.get(x, 0)) {
                 w.stream.addRect(LEFT + x * width, w.y - 30f, width, 30f);
@@ -257,7 +258,7 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
 
         private void rule() throws IOException {
             ensure(12f);
-            stream.setStrokingColor(175, 175, 175);
+            stream.setStrokingColor(0.69f, 0.69f, 0.69f);
             stream.moveTo(LEFT, y);
             stream.lineTo(RIGHT, y);
             stream.stroke();
@@ -312,7 +313,7 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
             if (value == null || value.isEmpty()) {
                 return;
             }
-            stream.setNonStrokingColor(0, 0, 0);
+            stream.setNonStrokingColor(0f, 0f, 0f);
             stream.beginText();
             stream.setFont(font, size);
             stream.newLineAtOffset(x, atY);
