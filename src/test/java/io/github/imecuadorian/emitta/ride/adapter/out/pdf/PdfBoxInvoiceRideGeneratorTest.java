@@ -34,7 +34,7 @@ class PdfBoxInvoiceRideGeneratorTest {
             assertTrue(text.contains("José Pérez"));
             assertTrue(text.contains("1234567890001"));
             assertTrue(text.contains(ACCESS_KEY));
-            assertTrue(text.contains("RUC proveedor"));
+            assertTrue(text.contains("RUC Proveedor"));
             assertTrue(text.contains("IMPORTE TOTAL"));
         }
     }
