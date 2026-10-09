@@ -123,7 +123,7 @@ public final class PdfBoxInvoiceRideGenerator implements InvoiceRidePdfGenerator
             }
             w.text(item.code(), 43f, w.y, NORMAL, 7.5f);
             w.text(number(item.quantity()), 326f, w.y, NORMAL, 8f);
-            w.text(money(item.unitPrice()), 385f, w.y, NORMAL, 8f);
+            w.text(number(item.unitPrice()), 385f, w.y, NORMAL, 8f);
             w.text(money(item.discount()), 442f, w.y, NORMAL, 8f);
             w.text(money(item.subtotal()), 502f, w.y, NORMAL, 8f);
             float descY = w.y;
