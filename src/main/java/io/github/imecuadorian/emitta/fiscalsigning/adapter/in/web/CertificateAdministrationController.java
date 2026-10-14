@@ -35,11 +35,13 @@ public final class CertificateAdministrationController {
     public record CertificateMetadata(UUID id,String fingerprint,String status,String validUntil) {}
     @GetMapping
     public ResponseEntity<List<CertificateMetadata>> metadata(@PathVariable UUID taxpayerId,JwtAuthenticationToken authentication) {
-        UUID tenant=UUID.fromString(authentication.getToken().getClaimAsString("tenant_id"));
+        UUID tenant=targetTenant(authentication,taxpayerId);
         var result=jdbc.sql("SELECT c.id,c.fingerprint,c.status,c.valid_until FROM emitta.certificates c JOIN emitta.taxpayers t ON t.id=c.taxpayer_id WHERE t.id=:id AND t.tenant_id=:tenant ORDER BY c.valid_until DESC")
                 .param("id",taxpayerId).param("tenant",tenant)
                 .query((rs,row)->new CertificateMetadata(rs.getObject("id",UUID.class),rs.getString("fingerprint"),
                         rs.getString("status"),rs.getTimestamp("valid_until").toInstant().toString())).list();
+        if(authentication.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("SCOPE_platform:admin")))
+            io.github.imecuadorian.emitta.auth.adapter.out.persistence.AdministrationAuditRecorder.record(jdbc,tenant,taxpayerId,"CERTIFICATES_READ");
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(result);
     }
     @PostMapping(consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -51,7 +53,7 @@ public final class CertificateAdministrationController {
                 || authorizationEvidence.isEmpty() || authorizationEvidence.getSize()>262144
                 || password.length()>1024 || (alias!=null && alias.length()>255))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Invalid certificate onboarding request");
-        UUID tenant=UUID.fromString(authentication.getToken().getClaimAsString("tenant_id"));
+        UUID tenant=targetTenant(authentication,taxpayerId);
         String ruc=jdbc.sql("SELECT ruc FROM emitta.taxpayers WHERE id=:id AND tenant_id=:tenant AND status='ACTIVE' AND test_enabled=true")
                 .param("id",taxpayerId).param("tenant",tenant).query(String.class).optional()
                 .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Active TEST taxpayer not found"));
@@ -92,5 +94,11 @@ public final class CertificateAdministrationController {
     }
     private static ResponseStatusException unavailable() {
         return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Trusted CA and current CRL configuration required");
+    }
+    private UUID targetTenant(JwtAuthenticationToken authentication,UUID taxpayer) {
+        if(authentication.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("SCOPE_platform:admin")))
+            return jdbc.sql("SELECT t.tenant_id FROM emitta.taxpayers t JOIN emitta.tenants n ON n.id=t.tenant_id WHERE t.id=:id AND n.status='ACTIVE'")
+                    .param("id",taxpayer).query(UUID.class).optional().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Taxpayer unavailable"));
+        return UUID.fromString(authentication.getToken().getClaimAsString("tenant_id"));
     }
 }

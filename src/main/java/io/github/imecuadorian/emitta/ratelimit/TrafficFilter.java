@@ -46,6 +46,10 @@ public final class TrafficFilter extends OncePerRequestFilter {
  public static String endpoint(String path) {
   if(path.equals("/api/v1/auth/token"))return "authentication";
   if(path.equals("/api/v1/invoices"))return "invoices";
+  if(path.equals("/api/v1/fiscal-configuration") || path.startsWith("/api/v1/tenants/") && path.endsWith("/fiscal-configuration"))return "fiscal-configuration";
+  if(path.startsWith("/api/v1/taxpayers/") && path.endsWith("/certificates"))return "certificates";
+  if(path.startsWith("/api/v1/tenants/") && path.contains("/documents/"))return "artifacts";
+  if(path.startsWith("/api/v1/tenants/") && path.endsWith("/documents"))return "documents";
   if(path.startsWith("/api/v1/documents/")) {
    if(path.contains("/artifacts/"))return "artifacts";
    return path.endsWith("/ride-job")?"ride-status":"documents";

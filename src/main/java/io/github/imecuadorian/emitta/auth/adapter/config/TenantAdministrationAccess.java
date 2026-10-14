@@ -37,6 +37,15 @@ public final class TenantAdministrationAccess {
     }
 
     public boolean allows(Authentication authentication, String path, String scope) {
+        if (authentication instanceof JwtAuthenticationToken jwt && authentication.isAuthenticated()
+                && (scope.equals("certificates:read") || scope.equals("certificates:write"))
+                && authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("SCOPE_platform:admin"))) {
+            try {
+                UUID id=UUID.fromString(path.split("/")[4]);
+                return jdbc.sql("SELECT count(*) FROM emitta.taxpayers t JOIN emitta.tenants n ON n.id=t.tenant_id WHERE t.id=:id AND n.status='ACTIVE'")
+                        .param("id",id).query(Integer.class).single()==1;
+            } catch(IllegalArgumentException | NullPointerException invalid) {return false;}
+        }
         if (!(authentication instanceof JwtAuthenticationToken jwt) || !authentication.isAuthenticated()
                 || authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("SCOPE_" + scope))) {
             return false;
@@ -54,5 +63,19 @@ public final class TenantAdministrationAccess {
         } catch (IllegalArgumentException | NullPointerException invalidContext) {
             return false;
         }
+    }
+
+    public boolean allowsFiscalConfiguration(Authentication authentication, boolean write) {
+        if (!(authentication instanceof JwtAuthenticationToken jwt) || !authentication.isAuthenticated())return false;
+        var authorities=authentication.getAuthorities().stream().map(a->a.getAuthority()).collect(java.util.stream.Collectors.toSet());
+        if(write && !authorities.containsAll(java.util.Set.of("SCOPE_taxpayers:write","SCOPE_establishments:write","SCOPE_points-of-issue:write")))return false;
+        return allowsRead(authentication,write?"taxpayers:write":"certificates:read");
+    }
+    public boolean allowsPlatformTenant(Authentication authentication,String path) {
+        if (!(authentication instanceof JwtAuthenticationToken) || !authentication.isAuthenticated()
+                || authentication.getAuthorities().stream().noneMatch(a->a.getAuthority().equals("SCOPE_platform:admin")))return false;
+        try {UUID tenant=UUID.fromString(path.split("/")[4]);
+            return jdbc.sql("SELECT count(*) FROM emitta.tenants WHERE id=:id AND status='ACTIVE'").param("id",tenant).query(Integer.class).single()==1;
+        } catch(IllegalArgumentException | NullPointerException invalid){return false;}
     }
 }

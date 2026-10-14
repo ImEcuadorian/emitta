@@ -7,7 +7,10 @@ import java.util.*;
 
 /** Test-only CA and leaf. Never use these generated identities with SRI. */
 public final class TestSigningCertificates {
-    public record Fixture(byte[] pkcs12, X509Certificate leaf, X509Certificate ca, List<java.security.cert.X509CRL> crls) {}
+    public record Fixture(byte[] pkcs12, X509Certificate leaf, X509Certificate ca, List<java.security.cert.X509CRL> crls) {
+        public Fixture { pkcs12=pkcs12.clone();crls=List.copyOf(crls); }
+        @Override public byte[] pkcs12(){return pkcs12.clone();}
+    }
     private TestSigningCertificates() {}
 
     public static Fixture create(String password) {

@@ -43,6 +43,14 @@ class CertificateAdministrationControllerTest {
         assertEquals("no-store",response.getHeaders().getCacheControl());
         verify(keys).registerReviewedCertificate(eq(tenant),eq(taxpayer),eq("1790012345001"),any(),any(),matches("[a-f0-9]{64}"),any());
     }
+    @Test void platformOwnerUsesTargetTaxpayerTenantWithoutBorrowingCustomerCredentials() {
+        when(jdbc.sql(anyString()).param("id",taxpayer).query(UUID.class).optional()).thenReturn(Optional.of(tenant));
+        var owner=new JwtAuthenticationToken(Jwt.withTokenValue("synthetic").header("alg","RS256")
+                .claim("tenant_id",UUID.randomUUID().toString()).build(),
+                List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_platform:admin")));
+        controller.register(taxpayer,owner,certificate(),"synthetic-password",null,evidence(),true);
+        verify(keys).registerReviewedCertificate(eq(tenant),eq(taxpayer),eq("1790012345001"),any(),any(),anyString(),any());
+    }
     @Test void rejectsWrongPasswordAndMismatchedRucWithoutPersistence() {
         assertEquals(422,assertThrows(ResponseStatusException.class,()->controller.register(taxpayer,authentication(),certificate(),"wrong",null,evidence(),true)).getStatusCode().value());
         when(jdbc.sql(anyString()).param("id",taxpayer).param("tenant",tenant).query(String.class).optional())

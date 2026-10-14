@@ -125,3 +125,11 @@ Certificado real importado por el operador; nueva factura TEST creada mediante R
 - Publicado: crear negocio y credenciales de integración desde una única acción; conexiones internas separadas, identificación de aplicación consultable, resultados parciales sin reintentos automáticos.
 - Próximo trabajo: ficha fiscal del cliente y preparación de contribuyente, establecimiento, punto y certificado desde la sesión del dueño. Requiere autorización por tenant y auditoría; no resolverlo entregando al cliente permisos administrativos.
 - No se generaron facturas ni se realizaron llamadas al SRI en esta etapa de interfaz.
+
+## 2026-10-14 — Alta fiscal por cliente y ficha del dueño
+
+- Implementados y publicados en staging: configuración fiscal conjunta mediante API, resolución segura de registros existentes y entrega de pointOfIssueId; certificado por API con permisos propios; panel del dueño con datos fiscales, certificado y listado/descarga de documentos sin cambiar de sesión.
+- Aislamiento y auditoría comprobados; V14 sólo amplía acciones del ledger, aplicada con backup previo a staging. No se modificó el piloto privado.
+- Build satisfactorio: 376 pruebas aprobadas y una SRI live omitida; seis pruebas aisladas de almacenamiento adicionales. Web: doce páginas y 220 enlaces; tipado y flujo administrativo aprobados.
+- Descarga real del PDF autorizado existente comprobada desde el navegador y por SHA-256. No hubo nuevos comprobantes ni llamadas al SRI.
+- Pendientes: política del proveedor y preparación comercial/PRODUCCIÓN, login humano/MFA y habilitación operativa fiscal explícita. Automatismos apagados. Detalle en [alta fiscal y panel](../operations/fiscal-self-service-and-owner-panel.md).

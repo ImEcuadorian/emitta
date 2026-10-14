@@ -81,6 +81,12 @@ public class SecurityConfiguration {
                                         .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                                 tenantAccess.allowsInvoice(authentication.get())))
 
+                                        .requestMatchers(HttpMethod.POST,"/api/v1/fiscal-configuration")
+                                        .access((authentication,context)->new org.springframework.security.authorization.AuthorizationDecision(tenantAccess.allowsFiscalConfiguration(authentication.get(),true)))
+                                        .requestMatchers(HttpMethod.GET,"/api/v1/fiscal-configuration")
+                                        .access((authentication,context)->new org.springframework.security.authorization.AuthorizationDecision(tenantAccess.allowsFiscalConfiguration(authentication.get(),false)))
+                                        .requestMatchers("/api/v1/tenants/*/fiscal-configuration","/api/v1/tenants/*/documents","/api/v1/tenants/*/documents/*/artifacts/*")
+                                        .access((authentication,context)->new org.springframework.security.authorization.AuthorizationDecision(tenantAccess.allowsPlatformTenant(authentication.get(),context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()))))
                                         .requestMatchers(HttpMethod.POST, "/api/v1/tenants/*/api-clients", "/api/v1/tenants/*/api-clients/*/rotate-secret", "/api/v1/tenants/*/api-clients/*/revoke")
                                         .hasAuthority("SCOPE_platform:admin")
                                         .requestMatchers(HttpMethod.GET, "/api/v1/tenants", "/api/v1/tenants/*/api-clients")

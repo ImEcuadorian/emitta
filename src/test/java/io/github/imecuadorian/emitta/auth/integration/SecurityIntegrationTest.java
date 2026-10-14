@@ -105,6 +105,67 @@ class SecurityIntegrationTest {
     @MockitoBean private io.github.imecuadorian.emitta.documentartifact.application.port.in.LoadDocumentArtifactUseCase queryArtifacts;
 
     private UUID tenantId;
+    @Autowired private io.github.imecuadorian.emitta.taxpayer.adapter.in.web.FiscalConfigurationService fiscalConfiguration;
+
+    @Test
+    void concurrentFiscalSetupHasOnePointAndRollsBackPartialCreationOnDomainFailure() throws Exception {
+        var taxpayer=new io.github.imecuadorian.emitta.taxpayer.adapter.in.web.CreateTaxpayerRequest("1790000000001","SYNTHETIC CONCURRENT",null,"Synthetic address");
+        var establishment=new io.github.imecuadorian.emitta.establishment.adapter.in.web.CreateEstablishmentRequest("001",null,null);
+        var request=new io.github.imecuadorian.emitta.taxpayer.adapter.in.web.FiscalConfigurationController.Request(taxpayer,establishment,
+                new io.github.imecuadorian.emitta.pointofissue.adapter.in.web.CreatePointOfIssueRequest("001",null));
+        try(var workers=java.util.concurrent.Executors.newFixedThreadPool(6)) {
+            var tasks=new java.util.ArrayList<java.util.concurrent.Future<java.util.Map<String,Object>>>();
+            for(int i=0;i<6;i++)tasks.add(workers.submit(()->fiscalConfiguration.configure(tenantId,request)));
+            Object point=tasks.getFirst().get(30,java.util.concurrent.TimeUnit.SECONDS).get("pointOfIssueId");
+            for(var task:tasks)assertEquals(point,task.get(30,java.util.concurrent.TimeUnit.SECONDS).get("pointOfIssueId"));
+        }
+        assertEquals(1,jdbcTemplate.queryForObject("select count(*) from emitta.taxpayers where tenant_id=?",Integer.class,tenantId));
+        var invalid=new io.github.imecuadorian.emitta.taxpayer.adapter.in.web.FiscalConfigurationController.Request(
+                new io.github.imecuadorian.emitta.taxpayer.adapter.in.web.CreateTaxpayerRequest("1790000000002","SYNTHETIC ROLLBACK",null,"Synthetic address"),
+                establishment,new io.github.imecuadorian.emitta.pointofissue.adapter.in.web.CreatePointOfIssueRequest("invalid",null));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,()->fiscalConfiguration.configure(tenantId,invalid));
+        assertEquals(0,jdbcTemplate.queryForObject("select count(*) from emitta.taxpayers where tenant_id=? and ruc='1790000000002'",Integer.class,tenantId));
+    }
+
+    @Test
+    void fiscalSetupReusesExistingPointRejectsConflictsAndIsolatesCustomerAndOwnerRoutes() throws Exception {
+        createApiClient("self-managed", "synthetic-secret", "taxpayers:write");
+        UUID client=jdbcTemplate.queryForObject("select id from emitta.api_clients where client_id='self-managed'",UUID.class);
+        for(String scope:java.util.List.of("establishments:write","points-of-issue:write","certificates:read","certificates:write"))
+            jdbcTemplate.update("insert into emitta.api_client_scopes(api_client_id,scope) values (?,?)",client,scope);
+        String token=obtainToken("self-managed","synthetic-secret");
+        String body="""
+            {"taxpayer":{"ruc":"1790012345001","legalName":"SYNTHETIC ISSUER","mainAddress":"Synthetic address"},
+             "establishment":{"code":"001","address":"Synthetic address"},"pointOfIssue":{"code":"001"}}
+            """;
+        String first=mockMvc.perform(post("/api/v1/fiscal-configuration").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String point=jsonMapper.readTree(first).get("pointOfIssueId").asText();
+        mockMvc.perform(post("/api/v1/fiscal-configuration").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.pointOfIssueId").value(point));
+        mockMvc.perform(post("/api/v1/fiscal-configuration").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(body.replace("Synthetic address","Changed address"))).andExpect(status().isConflict());
+        assertEquals(1,jdbcTemplate.queryForObject("select count(*) from emitta.taxpayers where tenant_id=?",Integer.class,tenantId));
+        assertEquals(1,jdbcTemplate.queryForObject("select count(*) from emitta.points_of_issue p join emitta.establishments e on e.id=p.establishment_id join emitta.taxpayers t on t.id=e.taxpayer_id where t.tenant_id=?",Integer.class,tenantId));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/fiscal-configuration")
+                .header("Authorization","Bearer "+token)).andExpect(status().isOk()).andExpect(jsonPath("$[0].pointOfIssueId").value(point));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/tenants/"+tenantId+"/fiscal-configuration")
+                .header("Authorization","Bearer "+token)).andExpect(status().isForbidden());
+        var owner=org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_platform:admin"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/tenants/"+tenantId+"/fiscal-configuration").with(owner))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].pointOfIssueId").value(point));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/tenants/"+tenantId+"/documents").with(owner))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/tenants/"+tenantId+"/documents/"+UUID.randomUUID()+"/artifacts/ride-pdf").with(owner))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/v1/fiscal-configuration").header("Authorization","Bearer "+token)
+                .contentType(MediaType.APPLICATION_JSON).content(body.replace("001","0001"))).andExpect(status().isBadRequest());
+        createApiClient("limited-fiscal", "synthetic-secret", "invoices:write");
+        String limited=obtainToken("limited-fiscal","synthetic-secret");
+        mockMvc.perform(post("/api/v1/fiscal-configuration").header("Authorization","Bearer "+limited)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+    }
 
     @BeforeEach
     void setUp() {
@@ -180,6 +241,10 @@ class SecurityIntegrationTest {
         var document=mock(Document.class);
         when(queryDocuments.findById(id)).thenReturn(java.util.Optional.of(document));
         when(document.getTenantId()).thenReturn(UUID.randomUUID());
+        var owner=org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                .authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("SCOPE_platform:admin"));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/tenants/"+tenantId+"/documents/"+id+"/artifacts/ride-pdf").with(owner))
+                .andExpect(status().isNotFound());
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/documents/"+id)
                 .header("Authorization","Bearer "+token)).andExpect(status().isNotFound());
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/documents/"+id+"/artifacts/ride-pdf")
