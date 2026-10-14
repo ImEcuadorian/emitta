@@ -71,6 +71,28 @@ public class DocumentPersistenceAdapter
     }
 
     @Override
+    public java.util.Map<UUID, AdmissionDocument> findForAdmission(java.util.Collection<UUID> ids) {
+        if (ids.size() > 50) throw new IllegalArgumentException("Admission batch exceeds 50");
+        if (ids.isEmpty()) return java.util.Map.of();
+        return jdbcTemplate.execute((org.springframework.jdbc.core.ConnectionCallback<java.util.Map<UUID, AdmissionDocument>>) connection -> {
+            var array = connection.createArrayOf("uuid", ids.toArray(UUID[]::new));
+            try (var statement = connection.prepareStatement("SELECT id,tenant_id,status FROM emitta.documents WHERE id=ANY(?)")) {
+                org.springframework.jdbc.datasource.DataSourceUtils.applyTimeout(statement, jdbcTemplate.getDataSource(), 5);
+                statement.setArray(1, array);
+                var result = new java.util.HashMap<UUID, AdmissionDocument>();
+                try (var rows = statement.executeQuery()) {
+                    while (rows.next()) {
+                        var id = rows.getObject("id", UUID.class);
+                        result.put(id, new AdmissionDocument(id, rows.getObject("tenant_id", UUID.class),
+                            io.github.imecuadorian.emitta.document.domain.DocumentStatus.valueOf(rows.getString("status"))));
+                    }
+                }
+                return result;
+            } finally { array.free(); }
+        });
+    }
+
+    @Override
     public Optional<Document>
     findByTenantIdAndIdempotencyKey(
             UUID tenantId,

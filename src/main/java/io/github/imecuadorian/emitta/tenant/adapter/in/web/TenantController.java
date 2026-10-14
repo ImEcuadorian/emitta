@@ -22,11 +22,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class TenantController {
 
     private final CreateTenantUseCase createTenantUseCase;
+    private final io.github.imecuadorian.emitta.auth.application.port.out.ApiClientAdministrationPort administration;
 
     public TenantController(
-            CreateTenantUseCase createTenantUseCase
+            CreateTenantUseCase createTenantUseCase,
+            io.github.imecuadorian.emitta.auth.application.port.out.ApiClientAdministrationPort administration
     ) {
         this.createTenantUseCase = createTenantUseCase;
+        this.administration = administration;
+    }
+    @org.springframework.web.bind.annotation.GetMapping
+    public ResponseEntity<java.util.List<io.github.imecuadorian.emitta.auth.application.port.out.ApiClientAdministrationPort.TenantSummary>> list(
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue="25") int limit,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue="0") int offset) {
+        if(limit<1 || limit>100 || offset<0) throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"Invalid pagination");
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(administration.listTenants(limit,offset));
     }
 
     @PostMapping

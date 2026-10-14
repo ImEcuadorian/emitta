@@ -27,7 +27,8 @@ public class DocumentConfiguration {
             TaxpayerFiscalLookupUseCase taxpayerLookup,
             OutboxEventPort outboxEventPort,
             Clock clock,
-            PlatformTransactionManager transactionManager
+            PlatformTransactionManager transactionManager,
+            io.github.imecuadorian.emitta.outbox.adapter.config.OutboxAdmissionGuard admission
     ) {
 
         CreateDocumentService service =
@@ -38,7 +39,8 @@ public class DocumentConfiguration {
                         taxpayerLookup,
                         outboxEventPort,
                         clock,
-                        UUID::randomUUID
+                        UUID::randomUUID,
+                        admission
                 );
 
         TransactionTemplate transactionTemplate =

@@ -1,0 +1,21 @@
+# Preparation template only. Supply DNS/TLS/short-lived operations JWT outside Git before use.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - /etc/prometheus/emitta-alerts.yaml
+scrape_configs:
+  - job_name: emitta
+    scheme: https
+    metrics_path: /actuator/prometheus
+    authorization:
+      type: Bearer
+      credentials_file: /run/secrets/emitta-operations-token
+    tls_config:
+      ca_file: /run/secrets/internal-ca.crt
+    static_configs:
+      - targets: ['emitta.internal:8443']
+  # RabbitMQ Prometheus plugin supplies total/unacked; application metrics only count ready.
+  - job_name: rabbitmq
+    static_configs:
+      - targets: ['rabbitmq.internal:15692']

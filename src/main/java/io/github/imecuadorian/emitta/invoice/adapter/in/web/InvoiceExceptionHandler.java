@@ -22,6 +22,12 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
                 InvoiceController.class
 )
 public class InvoiceExceptionHandler {
+    @ExceptionHandler(io.github.imecuadorian.emitta.outbox.adapter.config.OutboxAdmissionGuard.SaturatedException.class)
+    ResponseEntity<ProblemDetail> saturated() {
+        var problem=ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,"Temporary admission capacity exhausted; retry with the same idempotency key");
+        problem.setProperty("code","ADMISSION_SATURATED");
+        return ResponseEntity.status(503).header("Retry-After","2").cacheControl(org.springframework.http.CacheControl.noStore()).body(problem);
+    }
 
     @ExceptionHandler({
             DocumentIdempotencyConflictException.class,

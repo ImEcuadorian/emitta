@@ -1,0 +1,80 @@
+# Initial experimental thresholds. Edit this environment-specific rules file to configure alerts.
+# No fiscal or personal information in labels/annotations. Preparation only: no collector deployed.
+groups:
+  - name: emitta-operations
+    rules:
+      - alert: EmittaApiUnavailable
+        expr: up{job="emitta"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'API or collector unavailable; check TLS and token expiry'}
+      - alert: EmittaTelemetryStale
+        expr: time() - emitta_observability_sample_timestamp_seconds > 90
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Operational snapshot has stopped updating'}
+      - alert: EmittaDependencyUnavailable
+        expr: emitta_database_available == 0 or emitta_redis_probe_available == 0 or emitta_rabbit_available == 0
+        for: 30s
+        labels: {severity: critical}
+        annotations: {summary: 'Persistent or auxiliary dependency unavailable'}
+      - alert: EmittaHttpFailures
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 0.001) > 0.05
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: 'HTTP server errors exceed experimental five percent threshold'}
+      - alert: EmittaTrafficLimited
+        expr: sum(rate(http_server_requests_seconds_count{status="429"}[5m])) > 1
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: 'Sustained rate limiting; investigate abuse and policy'}
+      - alert: EmittaHighLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m]))) > 2
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'HTTP p95 exceeds experimental two seconds'}
+      - alert: EmittaPoolWaiting
+        expr: hikaricp_connections_pending > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Threads are waiting for PostgreSQL connections'}
+      - alert: EmittaAdmissionOutage
+        expr: increase(emitta_rabbit_admission_exhausted_total[5m]) > 0
+        for: 30s
+        labels: {severity: critical}
+        annotations: {summary: 'Admission failed; retained delivery cools down before requeue'}
+      - alert: EmittaDlqPending
+        expr: emitta_rabbit_ready{queue="dlq"} > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Inspect classification; do not blindly replay DLQ'}
+      - alert: EmittaOutboxBacklog
+        expr: emitta_outbox_pending > 100
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'Unpublished durable outbox backlog persists'}
+      - alert: EmittaOldWork
+        expr: emitta_processing_oldest_pending_seconds > 300
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: 'Pending work is older than five minutes'}
+      - alert: EmittaWorkNeedsReview
+        expr: emitta_processing_jobs{state=~"DEAD|BLOCKED"} > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Terminal or unknown-result jobs require review'}
+      - alert: EmittaSriCircuitOpen
+        expr: emitta_sri_circuit_state == 1
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'SRI circuit open; never blindly retry reception'}
+      - alert: EmittaRidePending
+        expr: emitta_ride_pending > 0
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: 'Verified authorized documents remain without PDF'}
+      - alert: EmittaAdmissionBrake
+        expr: sum(rate(emitta_outbox_admission_rejected_total[2m])) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Admission brake rejects new operations; existing work remains durable'}

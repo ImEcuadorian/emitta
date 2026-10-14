@@ -1,0 +1,7 @@
+{
+  "rootSha256": "0f361d8b258123ea9bb84dd3f2c821c0285479626e1185e12f1a04b85546e459",
+  "root": "https://crl.anf.es/certificates-download/ANFHighAssuranceEcuadorRootCA.cer",
+  "intermediate": "https://crl.anf.es/certificates-download/ANFHighAssuranceEcuadorIntermediateCA.cer",
+  "arl": "https://crl.anf.es/crl/ANFHighAssuranceEcuadorRootCA-arl.crl",
+  "crl": "https://crl.anf.es/crl/ANFHighAssuranceEcuadorIntermediateCA.crl"
+}

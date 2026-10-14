@@ -1,0 +1,25 @@
+spring:
+  main:
+    web-application-type: none
+emitta:
+  signing:
+    enabled: true
+  artifacts:
+    storage:
+      enabled: true
+  fiscal:
+    worker:
+      enabled: false
+  outbox:
+    publisher:
+      enabled: false
+  processing:
+    jobs:
+      enabled: false
+  ride:
+    enabled: false
+  sri:
+    reception:
+      enabled: false
+    authorization:
+      enabled: false

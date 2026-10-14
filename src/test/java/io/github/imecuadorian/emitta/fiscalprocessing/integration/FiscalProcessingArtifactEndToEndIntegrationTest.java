@@ -78,6 +78,8 @@ import static org.junit.jupiter.api.Assertions.*;
         properties = {
                 "emitta.outbox.publisher.enabled=false",
                 "emitta.fiscal.worker.enabled=true",
+                "emitta.processing.jobs.enabled=true",
+                "emitta.processing.jobs.poll-ms=100",
                 "emitta.artifacts.storage.enabled=true",
                 "emitta.fiscal.provider-ruc=1799999999001",
                 "emitta.fiscal.provider-policy.default-profile=external-test",
@@ -89,6 +91,7 @@ import static org.junit.jupiter.api.Assertions.*;
                 "emitta.fiscal.provider-policy.profiles.external-test.evidence-sha256=af040e9d52eaa1545b50ade55f5c3752450a036235850fd7dd17c643d258f53a",
                 "spring.rabbitmq.publisher-confirm-type=correlated",
                 "emitta.signing.enabled=true",
+                "emitta.ride.enabled=true",
                 "emitta.sri.reception.enabled=false",
                 "emitta.sri.authorization.enabled=false",
                 "spring.datasource.hikari.schema=emitta"
@@ -237,6 +240,11 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
     @Autowired
     private ProcessFiscalDocumentUseCase
             processFiscalDocumentUseCase;
+
+    @Autowired private io.github.imecuadorian.emitta.document.application.port.out.DocumentRepository rideDocuments;
+    @Autowired private io.github.imecuadorian.emitta.documentartifact.application.port.in.StoreDocumentArtifactUseCase rideStore;
+    @Autowired private io.github.imecuadorian.emitta.documentartifact.application.port.in.LoadDocumentArtifactUseCase rideLoad;
+    @Autowired private io.github.imecuadorian.emitta.ride.application.port.in.GenerateAndStoreInvoiceRideUseCase rideGenerator;
 
     private UUID tenantId;
     private UUID taxpayerId;
@@ -705,6 +713,29 @@ class FiscalProcessingArtifactEndToEndIntegrationTest {
                 signedDocument,
                 signingCertificate
         );
+        // Testcontainers-only authorized fixture. No SRI call and no real document mutation.
+        var authorizedFixture=rideDocuments.findById(documentId).orElseThrow();
+        authorizedFixture.markSubmitted(Instant.now());
+        authorizedFixture.markAuthorized(Instant.now());
+        rideDocuments.save(authorizedFixture);
+        rideStore.store(new io.github.imecuadorian.emitta.documentartifact.application.model.StoreDocumentArtifactCommand(
+                documentId, io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactType.AUTHORIZED_XML,
+                "application/xml", signedXml));
+        jdbcTemplate.update("INSERT INTO emitta.sri_authorizations(document_id,authorization_number,authorized_at,environment,authorized_xml_sha256) VALUES (?,?,?,'TEST',?)",
+                documentId,authorizedFixture.getAccessKey(),java.sql.Timestamp.from(authorizedFixture.getAuthorizedAt()),sha256(signedXml));
+        // Enabled durable scanner discovers this verified synthetic fixture and stores the PDF.
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(20)).untilAsserted(() -> assertEquals(1,jdbcTemplate.queryForObject("SELECT count(*) FROM emitta.document_artifacts WHERE document_id=? AND artifact_type='RIDE_PDF'",Integer.class,documentId)));
+        var ride=rideGenerator.generate(tenantId,documentId);
+        var pdf=rideLoad.load(documentId, io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactType.RIDE_PDF);
+        assertEquals(ride.sha256(),sha256(pdf.content()));
+        assertEquals("application/pdf",ride.contentType());
+        try(var loaded=org.apache.pdfbox.Loader.loadPDF(pdf.content())) {
+            assertTrue(new org.apache.pdfbox.text.PDFTextStripper().getText(loaded).contains("20.70"));
+        }
+        assertEquals(ride.id(),rideGenerator.generate(tenantId,documentId).id());
+        assertThrows(IllegalArgumentException.class, () -> rideGenerator.generate(UUID.randomUUID(),documentId));
+        assertEquals(DocumentStatus.AUTHORIZED,rideDocuments.findById(documentId).orElseThrow().getStatus());
+
     }
 
     @Test

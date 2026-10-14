@@ -47,6 +47,7 @@ public final class CreateDocumentService
     private final Clock clock;
     private final Supplier<UUID> idGenerator;
     private final OutboxEventPort outboxEventPort;
+    private final Runnable admission;
 
     public CreateDocumentService(
             DocumentRepository documentRepository,
@@ -57,6 +58,15 @@ public final class CreateDocumentService
             Clock clock,
             Supplier<UUID> idGenerator
     ) {
+        this(documentRepository,pointOfIssueLookup,establishmentLookup,taxpayerLookup,outboxEventPort,clock,idGenerator,()->{});
+    }
+
+    public CreateDocumentService(DocumentRepository documentRepository,
+            PointOfIssueFiscalLookupUseCase pointOfIssueLookup,
+            EstablishmentFiscalLookupUseCase establishmentLookup,
+            TaxpayerFiscalLookupUseCase taxpayerLookup,OutboxEventPort outboxEventPort,
+            Clock clock,Supplier<UUID> idGenerator,Runnable admission) {
+        this.admission=Objects.requireNonNull(admission);
         this.documentRepository =
                 Objects.requireNonNull(documentRepository);
 
@@ -142,6 +152,7 @@ public final class CreateDocumentService
             );
         }
 
+        admission.run();
         PointOfIssueFiscalData pointOfIssue =
                 pointOfIssueLookup
                         .findFiscalDataById(
@@ -232,6 +243,9 @@ public final class CreateDocumentService
                         now
                 );
 
+        // The initial state and its Outbox event commit atomically with the invoice.
+        // Persist the already queued snapshot, avoiding a merge/read/update round trip.
+        document.queue(now);
         boolean inserted =
                 documentRepository
                         .insertIfAbsent(
@@ -240,12 +254,7 @@ public final class CreateDocumentService
 
         if (inserted) {
 
-            document.queue(now);
-
-            Document queuedDocument =
-                    documentRepository.save(
-                            document
-                    );
+            Document queuedDocument = document;
 
             DocumentReceivedEvent domainEvent =
                     new DocumentReceivedEvent(

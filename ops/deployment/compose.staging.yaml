@@ -1,0 +1,139 @@
+name: emitta-staging
+x-runtime: &runtime
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+services:
+  postgres:
+    <<: *runtime
+    image: postgres:18
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: emitta_staging
+      POSTGRES_USER: ${DB_ADMIN_USERNAME:?required}
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?required}
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?required}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?required}
+      DB_READONLY_PASSWORD: ${DB_READONLY_PASSWORD:?required}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  redis:
+    <<: *runtime
+    image: redis:8-alpine
+    command: [redis-server, --appendonly, 'yes', --maxmemory, 96mb, --maxmemory-policy, noeviction]
+    mem_limit: 128m
+    volumes: [redis_data:/data]
+    networks: [data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  rabbitmq:
+    <<: *runtime
+    image: rabbitmq:4-management-alpine
+    mem_limit: 512m
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?required}
+    volumes: [rabbit_data:/var/lib/rabbitmq]
+    networks: [data]
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  minio:
+    <<: *runtime
+    image: dhi.io/minio:0.20251015.172955
+    command: [server, /data, --console-address, ':9001']
+    mem_limit: 256m
+    environment:
+      MINIO_ROOT_USER: ${EMITTA_ARTIFACT_STORAGE_ACCESS_KEY:?required}
+      MINIO_ROOT_PASSWORD: ${EMITTA_ARTIFACT_STORAGE_SECRET_KEY:?required}
+    volumes: [minio_data:/data]
+    networks: [data]
+  api:
+    <<: *runtime
+    image: emitta-api:20261012-panel1
+    build: {context: .}
+    mem_limit: 1024m
+    cpus: 1
+    read_only: true
+    tmpfs: ['/tmp:rw,noexec,nosuid,size=128m']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      SERVER_PORT: '8080'
+      EMITTA_SECURITY_ALLOWED_WEB_ORIGINS: https://emitta.nexorf.dev
+      EMITTA_TRUSTED_CLOUDFLARE_PEERS: ${EMITTA_TRUSTED_CLOUDFLARE_PEERS:?verified tunnel peer required}
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_NAME: emitta_staging
+      DB_APP_USERNAME: emitta_app
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?required}
+      DB_MIGRATION_USERNAME: emitta_migrator
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?required}
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: '5672'
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:?required}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?required}
+      EMITTA_JWT_PRIVATE_KEY_B64: ${EMITTA_JWT_PRIVATE_KEY_B64:?required}
+      EMITTA_JWT_PUBLIC_KEY_B64: ${EMITTA_JWT_PUBLIC_KEY_B64:?required}
+      EMITTA_CERTIFICATE_MASTER_KEY_B64: ${EMITTA_CERTIFICATE_MASTER_KEY_B64:?required}
+      EMITTA_CERTIFICATE_ADMINISTRATION_ENABLED: 'true'
+      EMITTA_CERTIFICATE_TRUSTED_CA_FILE: /certificate-trust/root.pem
+      EMITTA_CERTIFICATE_CRL_FILE: /certificate-trust/revocation.pem
+      EMITTA_DB_POOL_MAX: '10'
+      EMITTA_DB_POOL_MIN: '2'
+      EMITTA_ARTIFACT_STORAGE_ENABLED: 'true'
+      EMITTA_ARTIFACT_STORAGE_ENDPOINT: http://minio:9000
+      EMITTA_ARTIFACT_STORAGE_REGION: us-east-1
+      EMITTA_ARTIFACT_STORAGE_BUCKET: emitta-staging-artifacts
+      EMITTA_ARTIFACT_STORAGE_ACCESS_KEY: ${EMITTA_ARTIFACT_STORAGE_ACCESS_KEY:?required}
+      EMITTA_ARTIFACT_STORAGE_SECRET_KEY: ${EMITTA_ARTIFACT_STORAGE_SECRET_KEY:?required}
+      EMITTA_ARTIFACT_STORAGE_PATH_STYLE: 'true'
+      EMITTA_SIGNING_ENABLED: 'false'
+      EMITTA_FISCAL_WORKER_ENABLED: 'false'
+      EMITTA_OUTBOX_PUBLISHER_ENABLED: 'false'
+      EMITTA_PROCESSING_JOBS_ENABLED: 'false'
+      EMITTA_RIDE_ENABLED: 'false'
+      EMITTA_SRI_RECEPTION_ENABLED: 'false'
+      EMITTA_SRI_AUTHORIZATION_ENABLED: 'false'
+      EMITTA_PROVIDER_POLICY_PROFILE: unresolved
+      EMITTA_RATE_LIMIT_ENABLED: 'true'
+      SRI_ENVIRONMENT: TEST
+    volumes:
+      - type: bind
+        source: ./certificate-trust
+        target: /certificate-trust
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      data:
+      ingress:
+        aliases: [emitta-api]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+networks:
+  data: {internal: true}
+  ingress: {external: true, name: nexorf_public}
+volumes:
+  postgres_data:
+  redis_data:
+  rabbit_data:
+  minio_data:

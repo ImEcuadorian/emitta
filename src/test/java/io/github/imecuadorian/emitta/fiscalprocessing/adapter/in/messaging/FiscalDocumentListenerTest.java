@@ -1,76 +1,27 @@
 package io.github.imecuadorian.emitta.fiscalprocessing.adapter.in.messaging;
-
-import io.github.imecuadorian.emitta.fiscalprocessing.application.command.ProcessFiscalDocumentCommand;
-import io.github.imecuadorian.emitta.fiscalprocessing.application.port.in.ProcessFiscalDocumentUseCase;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
+import io.github.imecuadorian.emitta.recovery.DurableWorkPort;
+import io.github.imecuadorian.emitta.document.application.port.out.DocumentRepository;
+import io.github.imecuadorian.emitta.document.domain.*;
+import io.github.imecuadorian.emitta.outbox.adapter.out.messaging.RabbitOutboxMessagePublisher;
+import org.springframework.amqp.core.*;
 import tools.jackson.databind.json.JsonMapper;
-
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.*;
 import static org.mockito.Mockito.*;
-
 class FiscalDocumentListenerTest {
-
-    @Test
-    void shouldProcessDocumentReceivedMessage()
-            throws Exception {
-
-        ProcessFiscalDocumentUseCase useCase =
-                mock(
-                        ProcessFiscalDocumentUseCase.class
-                );
-
-        UUID documentId =
-                UUID.randomUUID();
-
-        FiscalDocumentListener listener =
-                new FiscalDocumentListener(
-                        useCase,
-                        JsonMapper.builder()
-                                .build()
-                );
-
-        String payload =
-                """
-                {
-                  "documentId": "%s"
-                }
-                """.formatted(
-                        documentId
-                );
-
-        Message message =
-                new Message(
-                        payload.getBytes(
-                                StandardCharsets.UTF_8
-                        ),
-                        new MessageProperties()
-                );
-
-        listener.onMessage(
-                message
-        );
-
-        ArgumentCaptor<ProcessFiscalDocumentCommand> captor =
-                ArgumentCaptor.forClass(
-                        ProcessFiscalDocumentCommand.class
-                );
-
-        verify(
-                useCase
-        ).process(
-                captor.capture()
-        );
-
-        assertEquals(
-                documentId,
-                captor.getValue()
-                        .documentId()
-        );
-    }
+ @Test void admitsDuplicateMessagesToTheSameDurableDocumentJob() {
+  var jobs=mock(DurableWorkPort.class);var docs=mock(DocumentRepository.class);var publisher=mock(RabbitOutboxMessagePublisher.class);
+  UUID id=UUID.randomUUID(),tenant=UUID.randomUUID();var document=mock(Document.class);
+  when(document.getTenantId()).thenReturn(tenant);when(document.getStatus()).thenReturn(DocumentStatus.QUEUED);
+  when(docs.findById(id)).thenReturn(Optional.of(document));
+  var listener=new FiscalDocumentListener(jobs,docs,publisher,JsonMapper.builder().build());
+  var message=new Message(("{\"documentId\":\""+id+"\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8),new MessageProperties());
+  listener.onMessage(message);listener.onMessage(message);
+  verify(jobs,times(2)).enqueue(DurableWorkPort.Kind.FISCAL,tenant,id);verifyNoInteractions(publisher);
+ }
+ @Test void invalidMessageIsConfirmedToDlqInsteadOfCirculating() {
+  var jobs=mock(DurableWorkPort.class);var docs=mock(DocumentRepository.class);var publisher=mock(RabbitOutboxMessagePublisher.class);
+  new FiscalDocumentListener(jobs,docs,publisher,JsonMapper.builder().build()).onMessage(new Message(new byte[]{0},new MessageProperties()));
+  verify(publisher).publishMessage(eq("emitta.deadletters"),eq("fiscal.invalid"),any(),any());verifyNoInteractions(jobs,docs);
+ }
 }

@@ -77,3 +77,10 @@ Thumbs.db
 *.reception-error.json
 *.authorization-*.json
 *.signed.xml
+*.credentials
+__pycache__/
+*.py[cod]
+/ops/deployment/certificate-trust/
+
+# Private host security audit (archived outside the repository)
+/docs/operations/server-readiness-audit-2026-10-12.md

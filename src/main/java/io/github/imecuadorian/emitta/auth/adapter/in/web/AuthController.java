@@ -21,9 +21,14 @@ public class AuthController {
     private final IssueAccessTokenUseCase
             issueAccessTokenUseCase;
 
+    private final org.springframework.beans.factory.ObjectProvider<io.github.imecuadorian.emitta.ratelimit.RedisTokenBucket> traffic;
+    private final io.github.imecuadorian.emitta.ratelimit.RateLimitProperties trafficProperties;
     public AuthController(
-            IssueAccessTokenUseCase issueAccessTokenUseCase
+            IssueAccessTokenUseCase issueAccessTokenUseCase,
+            org.springframework.beans.factory.ObjectProvider<io.github.imecuadorian.emitta.ratelimit.RedisTokenBucket> traffic,
+            io.github.imecuadorian.emitta.ratelimit.RateLimitProperties trafficProperties
     ) {
+        this.traffic=traffic; this.trafficProperties=trafficProperties;
         this.issueAccessTokenUseCase =
                 Objects.requireNonNull(
                         issueAccessTokenUseCase
@@ -39,6 +44,16 @@ public class AuthController {
             TokenRequest request
     ) {
 
+        var limiter=traffic.getIfAvailable();
+        if(limiter!=null) {
+            try {
+                var decision=limiter.consume(java.util.List.of(new io.github.imecuadorian.emitta.ratelimit.RedisTokenBucket.Bucket(
+                    "client-authentication",request.clientId(),trafficProperties.policy("client","authentication"))),"authentication");
+                if(!decision.allowed()) return ResponseEntity.status(429).header("Retry-After",Long.toString(decision.retryAfterSeconds())).cacheControl(CacheControl.noStore()).build();
+            } catch(io.github.imecuadorian.emitta.ratelimit.RedisTokenBucket.RateLimitUnavailableException unavailable) {
+                return ResponseEntity.status(503).header("Retry-After","1").cacheControl(CacheControl.noStore()).build();
+            }
+        }
         IssuedAccessToken token =
                 issueAccessTokenUseCase.issue(
                         new IssueAccessTokenCommand(

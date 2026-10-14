@@ -19,7 +19,8 @@ public class InvoiceConfiguration {
     CreateInvoiceUseCase createInvoiceUseCase(
             CreateDocumentUseCase createDocumentUseCase,
             InvoiceRepository invoiceRepository,
-            PlatformTransactionManager transactionManager
+            PlatformTransactionManager transactionManager,
+            io.micrometer.core.instrument.MeterRegistry metrics
     ) {
 
         CreateInvoiceService service =
@@ -33,7 +34,7 @@ public class InvoiceConfiguration {
                 service,
                 new TransactionTemplate(
                         transactionManager
-                )
+                ),metrics
         );
     }
 }

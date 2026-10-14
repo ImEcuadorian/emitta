@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @Import(GlobalExceptionHandler.class)
 class TenantControllerTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private io.github.imecuadorian.emitta.auth.application.port.out.ApiClientAdministrationPort administration;
 
     @Autowired
     private MockMvc mockMvc;

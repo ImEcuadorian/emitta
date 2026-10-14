@@ -2,6 +2,9 @@ package io.github.imecuadorian.emitta.documentartifact.adapter.config;
 
 import io.github.imecuadorian.emitta.documentartifact.adapter.out.storage.S3DocumentArtifactStorageAdapter;
 import io.github.imecuadorian.emitta.documentartifact.application.port.out.DocumentArtifactStoragePort;
+import io.github.imecuadorian.emitta.documentartifact.application.port.out.DocumentArtifactRepositoryPort;
+import io.github.imecuadorian.emitta.documentartifact.application.port.in.LoadDocumentArtifactUseCase;
+import io.github.imecuadorian.emitta.documentartifact.application.service.LoadDocumentArtifactService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +28,20 @@ import java.net.URI;
         ArtifactStorageProperties.class
 )
 public class ArtifactStorageConfiguration {
+
+    @Bean
+    LoadDocumentArtifactUseCase loadDocumentArtifactUseCase(
+            DocumentArtifactRepositoryPort repositoryPort,
+            DocumentArtifactStoragePort storagePort
+    ) {
+
+        return new LoadDocumentArtifactService(
+                repositoryPort,
+                storagePort
+        );
+    }
+
+
 
     @Bean
     S3Client artifactS3Client(

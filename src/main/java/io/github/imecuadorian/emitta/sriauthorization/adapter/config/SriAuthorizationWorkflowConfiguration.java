@@ -105,9 +105,12 @@ public class SriAuthorizationWorkflowConfiguration {
             XmlSignatureVerifierPort signatureVerifier,
             MarkDocumentAuthorizedUseCase markAuthorizedUseCase,
             DocumentRepository documentRepository,
-            SriAuthorizationEvidencePort evidencePort
+            SriAuthorizationEvidencePort evidencePort,
+            org.springframework.beans.factory.ObjectProvider<io.github.imecuadorian.emitta.ride.application.port.in.GenerateAndStoreInvoiceRideUseCase> rideProvider,
+            io.micrometer.core.instrument.MeterRegistry metrics,
+            io.github.imecuadorian.emitta.recovery.DurableWorkPort jobs
     ) {
-        return new ReconcileDocumentAuthorizationService(
+        var reconciliation = new ReconcileDocumentAuthorizationService(
                 queryUseCase,
                 loadArtifactUseCase,
                 verifyXmlUseCase,
@@ -117,5 +120,25 @@ public class SriAuthorizationWorkflowConfiguration {
                 documentRepository,
                 evidencePort
         );
+        return documentId -> {
+            var result = reconciliation.reconcile(documentId);
+            if (result.status() == io.github.imecuadorian.emitta.sriauthorization.domain.SriAuthorizationStatus.AUTHORIZED) {
+                var ride = rideProvider.getIfAvailable();
+                if (ride != null) {
+                    try {
+                        var document = documentRepository.findById(documentId).orElseThrow();
+                        jobs.enqueue(io.github.imecuadorian.emitta.recovery.DurableWorkPort.Kind.RIDE,document.getTenantId(),documentId);
+                        metrics.counter("emitta.ride.enqueue", "result", "success").increment();
+                    } catch (RuntimeException failure) {
+                        // Authorization is already durable. PDF failure must never roll it back or resubmit.
+                        metrics.counter("emitta.ride.enqueue", "result", "failure").increment();
+                        org.slf4j.LoggerFactory.getLogger(SriAuthorizationWorkflowConfiguration.class)
+                                .error("RIDE durable enqueue failed for document {}; failureType={}", documentId,
+                                        failure.getClass().getSimpleName());
+                    }
+                }
+            }
+            return result;
+        };
     }
 }

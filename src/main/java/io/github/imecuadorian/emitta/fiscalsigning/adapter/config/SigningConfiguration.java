@@ -3,9 +3,6 @@ package io.github.imecuadorian.emitta.fiscalsigning.adapter.config;
 import io.github.imecuadorian.emitta.document.application.port.out.DocumentRepository;
 import io.github.imecuadorian.emitta.documentartifact.application.port.in.LoadDocumentArtifactUseCase;
 import io.github.imecuadorian.emitta.documentartifact.application.port.in.StoreDocumentArtifactUseCase;
-import io.github.imecuadorian.emitta.documentartifact.application.port.out.DocumentArtifactRepositoryPort;
-import io.github.imecuadorian.emitta.documentartifact.application.port.out.DocumentArtifactStoragePort;
-import io.github.imecuadorian.emitta.documentartifact.application.service.LoadDocumentArtifactService;
 import io.github.imecuadorian.emitta.fiscalsigning.adapter.out.crypto.AesGcmSecretCipher;
 import io.github.imecuadorian.emitta.fiscalsigning.adapter.out.dss.DssXadesBesXmlSigner;
 import io.github.imecuadorian.emitta.fiscalsigning.adapter.out.persistence.PostgreSqlSigningKeyMaterialAdapter;
@@ -36,36 +33,10 @@ import java.time.Clock;
         name = "enabled",
         havingValue = "true"
 )
+@org.springframework.context.annotation.Import(SigningKeyMaterialConfiguration.class)
 public class SigningConfiguration {
 
 
-
-    @Bean
-    AesGcmSecretCipher certificateSecretCipher(
-            @Value("${EMITTA_CERTIFICATE_MASTER_KEY_B64}")
-            String masterKeyBase64
-    ) {
-
-        return new AesGcmSecretCipher(
-                masterKeyBase64
-        );
-    }
-
-    @Bean
-    SigningKeyMaterialPort signingKeyMaterialPort(
-            JdbcClient jdbcClient,
-            PlatformTransactionManager transactionManager,
-            AesGcmSecretCipher certificateSecretCipher
-    ) {
-
-        return new PostgreSqlSigningKeyMaterialAdapter(
-                jdbcClient,
-                new TransactionTemplate(
-                        transactionManager
-                ),
-                certificateSecretCipher
-        );
-    }
 
     @Bean
     XmlSignerPort xmlSignerPort(
@@ -74,18 +45,6 @@ public class SigningConfiguration {
 
         return new DssXadesBesXmlSigner(
                 clock
-        );
-    }
-
-    @Bean
-    LoadDocumentArtifactUseCase loadDocumentArtifactUseCase(
-            DocumentArtifactRepositoryPort repositoryPort,
-            DocumentArtifactStoragePort storagePort
-    ) {
-
-        return new LoadDocumentArtifactService(
-                repositoryPort,
-                storagePort
         );
     }
 

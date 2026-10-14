@@ -136,7 +136,7 @@ public final class SriSoapReceptionAdapter
             response =
                     httpClient.send(
                             httpRequest,
-                            HttpResponse.BodyHandlers.ofByteArray()
+                            io.github.imecuadorian.emitta.shared.resilience.SriSoapBodyHandlers.timedBytes(requestTimeout)
                     );
 
         } catch (InterruptedException exception) {
@@ -157,6 +157,7 @@ public final class SriSoapReceptionAdapter
             );
         }
 
+        if(response.statusCode()>=500 || response.statusCode()==429) throw upstreamUnavailable(response.body(),response.statusCode());
         if (
                 response.statusCode() < 200
                         || response.statusCode() >= 300
@@ -171,6 +172,20 @@ public final class SriSoapReceptionAdapter
         return parseResponse(
                 response.body()
         );
+    }
+
+    private static SriReceptionException upstreamUnavailable(byte[] response,int status) {
+        var communication=new IOException("Upstream HTTP status " + status);
+        try {
+            var document=parseXml(response);
+            var faults=document.getElementsByTagNameNS("*","Fault");
+            if(faults.getLength()>0) {
+                var fault=(Element)faults.item(0);
+                String detail=optionalText(fault,"faultstring");
+                return new SriReceptionException("SRI reception SOAP Fault: " + (detail==null?"unavailable":detail),communication);
+            }
+        } catch(SriReceptionException invalidResponse) {communication.addSuppressed(invalidResponse);}
+        return new SriReceptionException("SRI reception unavailable; remote outcome unknown",communication);
     }
 
     private URI endpointFor(

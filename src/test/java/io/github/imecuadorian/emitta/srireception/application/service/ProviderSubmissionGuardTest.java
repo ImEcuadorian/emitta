@@ -8,6 +8,20 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProviderSubmissionGuardTest {
+    @Test
+    void manualOmissionIsBoundToDocumentIssuerAndTestAndEndsWithScope() {
+        var id = java.util.UUID.randomUUID();
+        byte[] test = "<factura><infoTributaria><ambiente>1</ambiente><ruc>1790012345001</ruc></infoTributaria></factura>".getBytes(StandardCharsets.UTF_8);
+        assertFalse(ProviderSubmissionGuard.permitsManualOmission(id, test));
+        io.github.imecuadorian.emitta.shared.fiscal.ManualTestXmlScope.run(id, "1790012345001", () -> {
+            assertTrue(ProviderSubmissionGuard.permitsManualOmission(id, test));
+            assertFalse(ProviderSubmissionGuard.permitsManualOmission(java.util.UUID.randomUUID(), test));
+            assertFalse(ProviderSubmissionGuard.permitsManualOmission(id, new String(test, StandardCharsets.UTF_8).replace("<ambiente>1", "<ambiente>2").getBytes(StandardCharsets.UTF_8)));
+            assertFalse(ProviderSubmissionGuard.permitsManualOmission(id, new String(test, StandardCharsets.UTF_8).replace("1790012345001", "1790012345002").getBytes(StandardCharsets.UTF_8)));
+            return null;
+        });
+        assertFalse(ProviderSubmissionGuard.permitsManualOmission(id, test));
+    }
     private static byte[] xml(String fields) {
         return ("<factura><infoTributaria><ruc>1790012345001</ruc></infoTributaria><infoAdicional>"
                 + fields + "</infoAdicional></factura>").getBytes(StandardCharsets.UTF_8);

@@ -22,6 +22,8 @@ public final class PublishPendingOutboxService
 
     private final int batchSize;
     private final Duration claimLease;
+    private final Duration initialBackoff, maximumBackoff;
+    private final boolean jitter;
 
     public PublishPendingOutboxService(
             OutboxClaimPort outboxClaimPort,
@@ -31,6 +33,16 @@ public final class PublishPendingOutboxService
             int batchSize,
             Duration claimLease
     ) {
+        this(outboxClaimPort, messagePublisher, clock, workerId, batchSize, claimLease,
+                Duration.ofSeconds(1), Duration.ofSeconds(60), false);
+    }
+
+    public PublishPendingOutboxService(OutboxClaimPort outboxClaimPort, OutboxMessagePublisher messagePublisher,
+            Clock clock, String workerId, int batchSize, Duration claimLease,
+            Duration initialBackoff, Duration maximumBackoff, boolean jitter) {
+        if(initialBackoff.isNegative() || initialBackoff.isZero() || maximumBackoff.compareTo(initialBackoff)<0)
+            throw new IllegalArgumentException("Invalid outbox backoff");
+        this.initialBackoff=initialBackoff;this.maximumBackoff=maximumBackoff;this.jitter=jitter;
         this.outboxClaimPort =
                 Objects.requireNonNull(
                         outboxClaimPort
@@ -75,93 +87,30 @@ public final class PublishPendingOutboxService
                         )
                 );
 
-        int published =
-                0;
-
-        for (PendingOutboxEvent event : events) {
-
-            try {
-
-                messagePublisher.publish(
-                        event
-                );
-
-                boolean marked =
-                        outboxClaimPort.markPublished(
-                                event.id(),
-                                workerId,
-                                clock.instant()
-                        );
-
-                if (!marked) {
-                    throw new IllegalStateException(
-                            "Published event could not be marked as published: "
-                                    + event.id()
-                    );
-                }
-
-                published++;
-
-            } catch (RuntimeException exception) {
-
-                Instant nextAttemptAt =
-                        clock.instant()
-                                .plus(
-                                        retryDelay(
-                                                event.attempts()
-                                        )
-                                );
-
-                outboxClaimPort.releaseAfterFailure(
-                        event.id(),
-                        workerId,
-                        nextAttemptAt,
-                        errorMessage(
-                                exception
-                        )
-                );
-            }
+        var failures = messagePublisher.publishBatch(events);
+        var confirmed=events.stream().filter(e->!failures.containsKey(e.id())).map(PendingOutboxEvent::id).toList();
+        java.util.Set<java.util.UUID> marked;
+        try {marked=outboxClaimPort.markPublishedBatch(confirmed,workerId,clock.instant());}
+        catch(RuntimeException persistenceFailure) {
+            // A commit result may be unknown. Ownership predicates make release safe; replay is at least once.
+            marked=java.util.Set.of();
+            for(var id:confirmed)failures.put(id,persistenceFailure);
         }
-
-        return published;
+        for(var event:events) if(!marked.contains(event.id())) {
+            var failure=failures.getOrDefault(event.id(),new IllegalStateException("Outbox claim ownership changed"));
+            outboxClaimPort.releaseAfterFailure(event.id(),workerId,
+                clock.instant().plus(retryDelay(event.attempts())),errorMessage(failure));
+        }
+        return marked.size();
+    }
+    private Duration retryDelay(int attempt) {
+        long delay=Math.min(maximumBackoff.toMillis(),initialBackoff.toMillis()*(1L<<Math.min(Math.max(0,attempt-1),20)));
+        if(jitter) delay=Math.min(maximumBackoff.toMillis(),delay+java.util.concurrent.ThreadLocalRandom.current().nextLong(Math.max(1,delay/4+1)));
+        return Duration.ofMillis(delay);
     }
 
-    private static Duration retryDelay(
-            int attempt
-    ) {
-
-        long seconds =
-                Math.min(
-                        60L,
-                        1L << Math.min(
-                                attempt - 1,
-                                6
-                        )
-                );
-
-        return Duration.ofSeconds(
-                seconds
-        );
-    }
-
-    private static String errorMessage(
-            RuntimeException exception
-    ) {
-
-        String message =
-                exception.getMessage();
-
-        if (message == null) {
-            return exception
-                    .getClass()
-                    .getSimpleName();
-        }
-
-        return message.length() <= 2000
-                ? message
-                : message.substring(
-                0,
-                2000
-        );
+    private static String errorMessage(RuntimeException exception) {
+        // Do not persist arbitrary transport messages which could include credentials or payloads.
+        return exception.getClass().getSimpleName();
     }
 }

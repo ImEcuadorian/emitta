@@ -71,7 +71,9 @@ public final class GenerateInvoiceXmlService
 
         InvoiceXmlData data =
                 toInvoiceXmlData(
-                        source, policyPort.resolve(documentId).xmlProviderRuc()
+                        source, policyPort.resolve(documentId).mode() == io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicy.Mode.UNRESOLVED
+                                && io.github.imecuadorian.emitta.shared.fiscal.ManualTestXmlScope.permitsOmission(documentId,source.environment(),source.ruc())
+                                ? null : policyPort.resolve(documentId).xmlProviderRuc()
                 );
 
         return generatorPort.generate(

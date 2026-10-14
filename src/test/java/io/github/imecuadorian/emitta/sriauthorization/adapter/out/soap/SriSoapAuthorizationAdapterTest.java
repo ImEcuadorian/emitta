@@ -265,6 +265,27 @@ class SriSoapAuthorizationAdapterTest {
     }
 
     @Test
+    void soapClientFaultIsNotACommunicationRetry() {
+        responseStatus=500;
+        responseXml="""
+                <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                  <soap:Body><soap:Fault><faultcode>soap:Client</faultcode>
+                    <faultstring>Invalid synthetic request</faultstring></soap:Fault></soap:Body>
+                </soap:Envelope>
+                """;
+        var failure=assertThrows(SriAuthorizationException.class,()->adapter.query(request(FiscalEnvironment.TEST)));
+        assertTrue(failure.getMessage().contains("Invalid synthetic request"));
+        assertFalse(io.github.imecuadorian.emitta.shared.resilience.SriCallGuard.communicationFailure(failure));
+    }
+
+    @Test
+    void plainHttpInfrastructureFailureIsRetryableCommunication() {
+        responseStatus=503;responseXml="temporarily unavailable";
+        var failure=assertThrows(SriAuthorizationException.class,()->adapter.query(request(FiscalEnvironment.TEST)));
+        assertTrue(io.github.imecuadorian.emitta.shared.resilience.SriCallGuard.communicationFailure(failure));
+    }
+
+    @Test
     void shouldRejectDifferentAccessKey() {
 
         responseXml =

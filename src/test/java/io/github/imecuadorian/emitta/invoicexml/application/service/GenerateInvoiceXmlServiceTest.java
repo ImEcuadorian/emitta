@@ -179,6 +179,27 @@ class GenerateInvoiceXmlServiceTest {
         org.mockito.Mockito.verifyNoInteractions(generatorPort);
     }
 
+    @Test
+    void explicitManualScopeOmitsProviderWithoutChangingNormalPolicy() {
+        when(sourcePort.findByDocumentId(DOCUMENT_ID)).thenReturn(Optional.of(source()));
+        when(generatorPort.generate(any())).thenReturn(new GeneratedInvoiceXml("<factura/>"));
+        var blocked = new GenerateInvoiceXmlService(sourcePort, generatorPort,
+                ignored -> io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicy.unresolved(),
+                ZoneId.of("America/Guayaquil"));
+        io.github.imecuadorian.emitta.shared.fiscal.ManualTestXmlScope.run(DOCUMENT_ID, "1790012345001",
+                () -> blocked.generate(DOCUMENT_ID));
+        var captured = ArgumentCaptor.forClass(InvoiceXmlData.class);
+        verify(generatorPort).generate(captured.capture());
+        org.junit.jupiter.api.Assertions.assertNull(captured.getValue().providerRuc());
+        assertEquals("1790012345001", captured.getValue().ruc());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () -> blocked.generate(DOCUMENT_ID));
+        org.mockito.Mockito.verifyNoMoreInteractions(generatorPort);
+        io.github.imecuadorian.emitta.shared.fiscal.ManualTestXmlScope.run(DOCUMENT_ID, "1790012345001",
+                () -> service.generate(DOCUMENT_ID));
+        verify(generatorPort, org.mockito.Mockito.times(2)).generate(captured.capture());
+        assertEquals("1799999999001", captured.getValue().providerRuc());
+    }
+
     private static InvoiceXmlSourceData source() {
 
         return new InvoiceXmlSourceData(

@@ -21,9 +21,34 @@ public final class ProviderSubmissionGuard {
     }
 
     public void verify(UUID documentId) {
-        String expectedRuc = policy.resolve(documentId).xmlProviderRuc();
+        var reviewed = policy.resolve(documentId);
+        boolean manual = reviewed.mode() == io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicy.Mode.UNRESOLVED
+                && io.github.imecuadorian.emitta.shared.fiscal.ManualTestXmlScope.hasApproval(documentId);
+        // Normal unresolved policy fails before artifact reads, state changes or any external I/O.
+        String expectedRuc = manual ? null : reviewed.xmlProviderRuc();
         byte[] signed = artifacts.load(documentId, DocumentArtifactType.SIGNED_XML).content();
+        if (manual && !permitsManualOmission(documentId, signed)) reviewed.xmlProviderRuc();
         verifyXml(signed, expectedRuc);
+    }
+
+    static boolean permitsManualOmission(UUID documentId, byte[] signed) {
+        try {
+            var factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+            var root = factory.newDocumentBuilder().parse(new ByteArrayInputStream(signed)).getDocumentElement();
+            var infos = root.getElementsByTagName("infoTributaria");
+            if (!"factura".equals(root.getTagName()) || infos.getLength() != 1) return false;
+            var info = (Element) infos.item(0);
+            var rucs = info.getElementsByTagName("ruc");
+            var environments = info.getElementsByTagName("ambiente");
+            return rucs.getLength() == 1 && environments.getLength() == 1
+                    && "1".equals(environments.item(0).getTextContent())
+                    && io.github.imecuadorian.emitta.shared.fiscal.ManualTestXmlScope.permitsOmission(documentId,
+                    io.github.imecuadorian.emitta.shared.fiscal.FiscalEnvironment.TEST, rucs.item(0).getTextContent());
+        } catch (Exception invalid) { return false; }
     }
 
     public static void verifyXml(byte[] signed, String expectedRuc) {

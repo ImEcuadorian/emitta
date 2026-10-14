@@ -1,3 +1,7 @@
+import java.util.jar.Manifest
+import java.util.jar.Attributes
+import java.util.jar.JarOutputStream
+
 plugins {
     java
     id("org.springframework.boot") version "4.1.1"
@@ -27,6 +31,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
 
     // =========================================================
@@ -147,6 +152,9 @@ dependencies {
     // DEVELOPMENT
     // =========================================================
 
+    implementation("org.apache.pdfbox:pdfbox:3.0.8")
+    implementation("com.google.zxing:core:3.5.4")
+
     compileOnly("org.projectlombok:lombok")
 
     annotationProcessor("org.projectlombok:lombok")
@@ -232,9 +240,41 @@ dependencies {
 }
 
 tasks.named<Test>("test") {
+    environment("RUN_SRI_LIVE_TEST", "false")
     useJUnitPlatform {
         excludeTags("object-storage-integration")
+        excludeTags("operational-load")
     }
+}
+
+tasks.withType<Test>().configureEach {
+    doFirst {
+        val launcher = layout.buildDirectory.file("operational/test-runtime-launcher.jar").get().asFile
+        launcher.parentFile.mkdirs()
+        val manifest = Manifest()
+        manifest.mainAttributes[Attributes.Name.MANIFEST_VERSION] = "1.0"
+        manifest.mainAttributes[Attributes.Name.CLASS_PATH] = sourceSets["test"].runtimeClasspath.files
+            .joinToString(" ") { it.toURI().toASCIIString() }
+        JarOutputStream(launcher.outputStream(), manifest).use { }
+        systemProperty("emitta.test.runtime-launcher", launcher.absolutePath)
+    }
+    // Isolated tests that do not provision Redis must never fall back to the developer's service.
+    environment("REDIS_HOST", "127.0.0.1")
+    environment("REDIS_PORT", "1")
+    environment("EMITTA_OBSERVABILITY_ENABLED", "false")
+    environment("SPRING_PROFILES_ACTIVE", "test")
+    environment("SPRING_APPLICATION_JSON", "{}")
+}
+
+tasks.register<Test>("operationalLoadTest") {
+    description = "Runs k6 against an isolated Testcontainers REST admission environment"
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform { includeTags("operational-load") }
+    maxHeapSize = "1g"
+    outputs.upToDateWhen { false }
+    shouldRunAfter(tasks.test)
 }
 
 tasks.register<Test>("objectStorageIntegrationTest") {
@@ -243,6 +283,7 @@ tasks.register<Test>("objectStorageIntegrationTest") {
 
     testClassesDirs = sourceSets["test"].output.classesDirs
     classpath = sourceSets["test"].runtimeClasspath
+    environment("RUN_SRI_LIVE_TEST", "false")
 
     useJUnitPlatform {
         includeTags("object-storage-integration")

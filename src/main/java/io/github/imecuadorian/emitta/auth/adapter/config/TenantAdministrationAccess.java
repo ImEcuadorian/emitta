@@ -16,6 +16,16 @@ public final class TenantAdministrationAccess {
         this.jdbc = jdbc;
     }
 
+    public boolean allowsRead(Authentication authentication,String scope) {
+        if (!(authentication instanceof JwtAuthenticationToken jwt) || !authentication.isAuthenticated()
+                || authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("SCOPE_"+scope))) return false;
+        try {
+            UUID tenant=UUID.fromString(jwt.getToken().getClaimAsString("tenant_id"));
+            return jdbc.sql("SELECT count(*) FROM emitta.tenants WHERE id=:tenant AND status='ACTIVE'")
+                    .param("tenant",tenant).query(Integer.class).single()==1;
+        } catch (IllegalArgumentException | NullPointerException invalid) { return false; }
+    }
+
     public boolean allowsInvoice(Authentication authentication) {
         if (!(authentication instanceof JwtAuthenticationToken jwt) || !authentication.isAuthenticated()
                 || authentication.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("SCOPE_invoices:write"))) return false;
@@ -36,7 +46,7 @@ public final class TenantAdministrationAccess {
             UUID resource = UUID.fromString(path.split("/")[4]);
             String query = switch (scope) {
                 case "taxpayers:write" -> "SELECT count(*) FROM emitta.tenants WHERE id=:resource AND id=:tenant AND status='ACTIVE'";
-                case "establishments:write" -> "SELECT count(*) FROM emitta.taxpayers t JOIN emitta.tenants n ON n.id=t.tenant_id WHERE t.id=:resource AND t.tenant_id=:tenant AND n.status='ACTIVE'";
+                case "certificates:read", "certificates:write", "establishments:write" -> "SELECT count(*) FROM emitta.taxpayers t JOIN emitta.tenants n ON n.id=t.tenant_id WHERE t.id=:resource AND t.tenant_id=:tenant AND n.status='ACTIVE'";
                 case "points-of-issue:write" -> "SELECT count(*) FROM emitta.establishments e JOIN emitta.taxpayers t ON t.id=e.taxpayer_id JOIN emitta.tenants n ON n.id=t.tenant_id WHERE e.id=:resource AND t.tenant_id=:tenant AND n.status='ACTIVE'";
                 default -> throw new IllegalArgumentException("Unsupported administration scope");
             };

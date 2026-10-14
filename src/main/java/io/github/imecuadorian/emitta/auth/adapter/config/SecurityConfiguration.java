@@ -26,6 +26,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.UUID;
 
 @Configuration
 public class SecurityConfiguration {
@@ -36,10 +37,14 @@ public class SecurityConfiguration {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             SecurityProblemHandler problems,
-            TenantAdministrationAccess tenantAccess
+            TenantAdministrationAccess tenantAccess,
+            org.springframework.beans.factory.ObjectProvider<io.github.imecuadorian.emitta.ratelimit.RedisTokenBucket> traffic,
+            io.github.imecuadorian.emitta.ratelimit.RateLimitProperties trafficProperties,
+            @Value("${emitta.security.trusted-cloudflare-peers:}") String trustedCloudflarePeers
     ) throws Exception {
 
         http
+                .cors(Customizer.withDefaults())
                 .csrf(
                         csrf ->
                                 csrf.disable()
@@ -76,19 +81,35 @@ public class SecurityConfiguration {
                                         .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                                 tenantAccess.allowsInvoice(authentication.get())))
 
+                                        .requestMatchers(HttpMethod.POST, "/api/v1/tenants/*/api-clients", "/api/v1/tenants/*/api-clients/*/rotate-secret", "/api/v1/tenants/*/api-clients/*/revoke")
+                                        .hasAuthority("SCOPE_platform:admin")
+                                        .requestMatchers(HttpMethod.GET, "/api/v1/tenants", "/api/v1/tenants/*/api-clients")
+                                        .hasAuthority("SCOPE_platform:admin")
                                         .requestMatchers(HttpMethod.POST, "/api/v1/tenants")
                                         .hasAuthority("SCOPE_platform:admin")
                                         .requestMatchers(HttpMethod.POST, "/api/v1/tenants/*/taxpayers")
                                         .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                                 tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "taxpayers:write")))
+                                        .requestMatchers(HttpMethod.GET, "/api/v1/taxpayers/*/certificates")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "certificates:read")))
+                                        .requestMatchers(HttpMethod.POST, "/api/v1/taxpayers/*/certificates")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "certificates:write")))
                                         .requestMatchers(HttpMethod.POST, "/api/v1/taxpayers/*/establishments")
                                         .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                                 tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "establishments:write")))
                                         .requestMatchers(HttpMethod.POST, "/api/v1/establishments/*/points-of-issue")
                                         .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                                 tenantAccess.allows(authentication.get(), context.getRequest().getRequestURI().substring(context.getRequest().getContextPath().length()), "points-of-issue:write")))
-                                        .requestMatchers("/actuator/info", "/actuator/metrics/**")
+                                        .requestMatchers("/actuator/info", "/actuator/metrics/**", "/actuator/prometheus")
                                         .hasAuthority("SCOPE_operations:read")
+                                        .requestMatchers(HttpMethod.GET, "/api/v1/documents/*/artifacts/*", "/api/v1/documents/*/ride-job")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allowsRead(authentication.get(), "artifacts:read")))
+                                        .requestMatchers(HttpMethod.GET, "/api/v1/documents/*")
+                                        .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                                tenantAccess.allowsRead(authentication.get(), "documents:read")))
                                         .anyRequest()
                                         .denyAll()
                 )
@@ -113,6 +134,14 @@ public class SecurityConfiguration {
                                         )
                 );
 
+        var limiter=traffic.getIfAvailable();
+        if(limiter!=null) {
+            http.addFilterBefore(new io.github.imecuadorian.emitta.ratelimit.TrafficFilter(limiter,trafficProperties,false,
+                    io.github.imecuadorian.emitta.ratelimit.TrustedClientAddress.peers(trustedCloudflarePeers)),
+                    org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
+            http.addFilterAfter(new io.github.imecuadorian.emitta.ratelimit.TrafficFilter(limiter,trafficProperties,true),
+                    org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
+        }
         return http.build();
     }
 
@@ -132,6 +161,7 @@ public class SecurityConfiguration {
 
     @Bean
     JwtDecoder jwtDecoder(
+            org.springframework.jdbc.core.simple.JdbcClient jdbc,
             RSAPublicKey publicKey,
             @Value(
                     "${emitta.security.jwt.issuer}"
@@ -182,7 +212,16 @@ public class SecurityConfiguration {
         decoder.setJwtValidator(
                 new DelegatingOAuth2TokenValidator<>(
                         issuerValidator,
-                        audienceValidator
+                        audienceValidator,
+                        jwt -> {
+                            try {
+                                UUID tenant=UUID.fromString(jwt.getClaimAsString("tenant_id"));
+                                boolean active=jdbc.sql("SELECT count(*) FROM emitta.api_clients c JOIN emitta.tenants t ON t.id=c.tenant_id WHERE c.client_id=:client AND c.tenant_id=:tenant AND c.status='ACTIVE' AND t.status='ACTIVE'")
+                                        .param("client",jwt.getSubject()).param("tenant",tenant).query(Integer.class).single()==1;
+                                if(active) return OAuth2TokenValidatorResult.success();
+                            } catch(IllegalArgumentException | NullPointerException invalid) { /* Fail closed. */ }
+                            return OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token","Inactive API client",null));
+                        }
                 )
         );
 

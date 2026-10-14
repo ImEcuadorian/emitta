@@ -126,15 +126,6 @@ class CreateDocumentServiceTest {
                 true
         );
 
-        when(
-                documentRepository.save(
-                        any()
-                )
-        ).thenAnswer(
-                invocation ->
-                        invocation.getArgument(0)
-        );
-
         CreateDocumentResult result =
                 service.create(
                         validCommand()
@@ -361,15 +352,6 @@ class CreateDocumentServiceTest {
                 true
         );
 
-        when(
-                documentRepository.save(
-                        any()
-                )
-        ).thenAnswer(
-                invocation ->
-                        invocation.getArgument(0)
-        );
-
         service.create(
                 validCommand()
         );
@@ -381,7 +363,7 @@ class CreateDocumentServiceTest {
 
         verify(
                 documentRepository
-        ).save(
+        ).insertIfAbsent(
                 documentCaptor.capture()
         );
 
@@ -465,6 +447,23 @@ class CreateDocumentServiceTest {
                 "invoice-001",
                 NOW
         );
+    }
+
+    @Test void saturatedAdmissionRejectsBeforeDocumentOrEventInsertion() {
+        var guarded=new CreateDocumentService(documentRepository,pointOfIssueLookup,establishmentLookup,taxpayerLookup,
+            outboxEventPort,Clock.fixed(NOW,ZoneOffset.UTC),()->DOCUMENT_ID,
+            ()->{throw new io.github.imecuadorian.emitta.outbox.adapter.config.OutboxAdmissionGuard.SaturatedException();});
+        assertThrows(io.github.imecuadorian.emitta.outbox.adapter.config.OutboxAdmissionGuard.SaturatedException.class,
+            ()->guarded.create(validCommand()));
+        verify(documentRepository,never()).insertIfAbsent(any());verifyNoInteractions(outboxEventPort);
+    }
+
+    @Test void saturatedAdmissionStillAllowsAnExistingIdempotentRequest() {
+        var gate=mock(Runnable.class);
+        var guarded=new CreateDocumentService(documentRepository,pointOfIssueLookup,establishmentLookup,taxpayerLookup,
+            outboxEventPort,Clock.fixed(NOW,ZoneOffset.UTC),()->DOCUMENT_ID,gate);
+        when(documentRepository.findByTenantIdAndIdempotencyKey(any(),any())).thenReturn(Optional.of(existingDocument()));
+        assertFalse(guarded.create(validCommand()).created());verifyNoInteractions(gate,outboxEventPort);
     }
 
     private Document existingDocument() {

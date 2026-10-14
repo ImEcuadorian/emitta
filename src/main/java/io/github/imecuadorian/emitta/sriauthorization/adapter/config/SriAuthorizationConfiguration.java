@@ -40,17 +40,19 @@ public class SriAuthorizationConfiguration {
 
     @Bean
     SriAuthorizationPort sriAuthorizationPort(
+            @Qualifier("sriAuthorizationGuard") io.github.imecuadorian.emitta.shared.resilience.SriCallGuard guard,
             @Qualifier("sriAuthorizationHttpClient")
             HttpClient httpClient,
             SriAuthorizationProperties properties
     ) {
 
-        return new SriSoapAuthorizationAdapter(
+        var delegate = new SriSoapAuthorizationAdapter(
                 httpClient,
                 properties.testEndpoint(),
                 properties.productionEndpoint(),
                 properties.requestTimeout()
         );
+        return request -> guard.execute(() -> delegate.query(request));
     }
 
     @Bean

@@ -1,0 +1,39 @@
+rule_files:
+  - emitta-alerts.yaml
+evaluation_interval: 15s
+tests:
+  - interval: 15s
+    input_series:
+      - series: emitta_outbox_admission_rejected_total
+        values: '0+1x8'
+      - series: emitta_database_available
+        values: '1 0x8'
+      - series: emitta_redis_probe_available
+        values: '1x9'
+      - series: emitta_rabbit_available
+        values: '1x9'
+      - series: 'emitta_processing_jobs{state="BLOCKED"}'
+        values: '0 1x8'
+      - series: 'emitta_sri_circuit_state{operation="reception"}'
+        values: '0 1x8'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: EmittaAdmissionBrake
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations: {summary: 'Admission brake rejects new operations; existing work remains durable'}
+      - eval_time: 1m
+        alertname: EmittaDependencyUnavailable
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations: {summary: 'Persistent or auxiliary dependency unavailable'}
+      - eval_time: 2m
+        alertname: EmittaWorkNeedsReview
+        exp_alerts:
+          - exp_labels: {severity: warning, state: BLOCKED}
+            exp_annotations: {summary: 'Terminal or unknown-result jobs require review'}
+      - eval_time: 2m
+        alertname: EmittaSriCircuitOpen
+        exp_alerts:
+          - exp_labels: {severity: warning, operation: reception}
+            exp_annotations: {summary: 'SRI circuit open; never blindly retry reception'}

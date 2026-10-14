@@ -73,17 +73,24 @@ public class SriReceptionConfiguration {
 
     @Bean
     SriReceptionPort sriReceptionPort(
+            @Qualifier("sriReceptionGuard") io.github.imecuadorian.emitta.shared.resilience.SriCallGuard guard,
             @Qualifier("sriReceptionHttpClient")
             HttpClient sriReceptionHttpClient,
             SriReceptionProperties properties
     ) {
 
-        return new SriSoapReceptionAdapter(
+        var delegate = new SriSoapReceptionAdapter(
                 sriReceptionHttpClient,
                 properties.testEndpoint(),
                 properties.productionEndpoint(),
                 properties.requestTimeout()
         );
+        return request -> {
+            try { return guard.execute(() -> delegate.submit(request)); }
+            catch (io.github.resilience4j.circuitbreaker.CallNotPermittedException | io.github.resilience4j.bulkhead.BulkheadFullException refused) {
+                throw new io.github.imecuadorian.emitta.srireception.application.exception.SriReceptionException("SRI reception not started",refused);
+            }
+        };
     }
 
     @Bean

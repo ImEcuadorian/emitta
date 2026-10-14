@@ -10,10 +10,14 @@ info:
     for fiscal processing. It does not mean that the SRI has authorized it.
 
 servers:
+  - url: https://api-emitta.nexorf.dev
+    description: Staging; fiscal processing and SRI transmission disabled
   - url: http://localhost:18080
     description: Local development
 
 tags:
+  - name: Documents
+    description: Tenant-protected document status and authorized artifacts
   - name: Administration
     description: Restricted platform and tenant administration
   - name: Authentication
@@ -41,7 +45,7 @@ paths:
         This endpoint is intentionally public because it is the authentication
         entry point.
 
-      security: [ ]
+      security: []
 
       requestBody:
         required: true
@@ -77,6 +81,10 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
 
   /api/v1/invoices:
 
@@ -106,7 +114,7 @@ paths:
 
       security:
         - bearerAuth: []
-      x-required-scopes: [invoices:write]
+      x-required-scopes: [ invoices:write ]
 
       parameters:
 
@@ -210,6 +218,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 
+        "503":
+          description: |
+            Temporary admission saturation. ADMISSION_SATURATED is returned
+            before committing a new document. Retry the identical request
+            with the same idempotency key; existing replays remain available.
+            A transport timeout or any other server error does not prove that
+            no commit occurred. Reconcile by replaying the identical request
+            and key; never create a replacement invoice with a new key.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Suggested delay in seconds
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
         "422":
           description: |
             Request is structurally valid but violates a fiscal or
@@ -218,16 +244,44 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
-
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
   /api/v1/tenants:
-    post:
+
+    get:
       tags: [Administration]
+      operationId: listTenants
+      summary: List tenant metadata for the platform operator
+      security: [{bearerAuth: []}]
+      x-required-scopes: [platform:admin]
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 25}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}}
+      responses:
+        '200':
+          description: Tenant metadata; Cache-Control no-store
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: string, format: uuid}
+                    name: {type: string}
+                    status: {type: string}
+        '400': {description: Invalid pagination}
+        '401': {description: Authentication required}
+        '403': {description: Platform operator required}
+    post:
+      tags: [ Administration ]
       operationId: createTenant
       summary: Create Tenant
-      description: Requires platform:admin. Scoped parent resources must belong to the active JWT tenant. Administrative creation is not idempotent; duplicate fiscal codes return 409.
+      description: Requires platform:admin. Scoped parent resources must belong to the active JWT tenant.
+        Administrative creation is not idempotent; duplicate fiscal codes return 409.
       security:
         - bearerAuth: []
-      x-required-scopes: [platform:admin]
+      x-required-scopes: [ platform:admin ]
       requestBody:
         required: true
         content:
@@ -271,21 +325,26 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
 
   /api/v1/tenants/{tenantId}/taxpayers:
     post:
-      tags: [Administration]
+      tags: [ Administration ]
       operationId: createTaxpayer
       summary: Create Taxpayer
-      description: Requires taxpayers:write. Scoped parent resources must belong to the active JWT tenant. Administrative creation is not idempotent; duplicate fiscal codes return 409.
+      description: Requires taxpayers:write. Scoped parent resources must belong to the active JWT tenant.
+        Administrative creation is not idempotent; duplicate fiscal codes return 409.
       security:
         - bearerAuth: []
-      x-required-scopes: [taxpayers:write]
+      x-required-scopes: [ taxpayers:write ]
       parameters:
         - name: tenantId
           in: path
           required: true
-          schema: {type: string, format: uuid}
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -329,21 +388,26 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
 
   /api/v1/taxpayers/{taxpayerId}/establishments:
     post:
-      tags: [Administration]
+      tags: [ Administration ]
       operationId: createEstablishment
       summary: Create Establishment
-      description: Requires establishments:write. Scoped parent resources must belong to the active JWT tenant. Administrative creation is not idempotent; duplicate fiscal codes return 409.
+      description: Requires establishments:write. Scoped parent resources must belong to the active JWT
+        tenant. Administrative creation is not idempotent; duplicate fiscal codes return 409.
       security:
         - bearerAuth: []
-      x-required-scopes: [establishments:write]
+      x-required-scopes: [ establishments:write ]
       parameters:
         - name: taxpayerId
           in: path
           required: true
-          schema: {type: string, format: uuid}
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -387,21 +451,26 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
 
   /api/v1/establishments/{establishmentId}/points-of-issue:
     post:
-      tags: [Administration]
+      tags: [ Administration ]
       operationId: createPointOfIssue
       summary: Create PointOfIssue
-      description: Requires points-of-issue:write. Scoped parent resources must belong to the active JWT tenant. Administrative creation is not idempotent; duplicate fiscal codes return 409.
+      description: Requires points-of-issue:write. Scoped parent resources must belong to the active JWT
+        tenant. Administrative creation is not idempotent; duplicate fiscal codes return 409.
       security:
         - bearerAuth: []
-      x-required-scopes: [points-of-issue:write]
+      x-required-scopes: [ points-of-issue:write ]
       parameters:
         - name: establishmentId
           in: path
           required: true
-          schema: {type: string, format: uuid}
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -445,7 +514,409 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
 
+  /api/v1/documents/{documentId}:
+    get:
+      tags:
+        - Documents
+      operationId: getDocument
+      summary: Read a document in the authenticated tenant
+      security:
+        - bearerAuth: []
+      x-required-scopes:
+        - documents:read
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Document status; never includes internal object storage paths
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                  accessKey:
+                    type: string
+                    nullable: true
+                  sequential:
+                    type: integer
+                    format: int64
+                    nullable: true
+                  environment:
+                    type: string
+                    enum:
+                      - TEST
+                      - PRODUCTION
+                  issuedAt:
+                    type: string
+                    format: date-time
+                  authorizedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        "400":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "401":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "403":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+  /api/v1/documents/{documentId}/artifacts/{type}:
+    get:
+      tags:
+        - Documents
+      operationId: downloadDocumentArtifact
+      summary: Download an authorized XML or RIDE PDF
+      description: Requires confirmed AUTHORIZED state and enabled artifact loading. Checks tenant
+        ownership before accessing object storage and verifies persisted SHA-256. RIDE may not exist
+        yet. This GET never generates or submits a document.
+      security:
+        - bearerAuth: []
+      x-required-scopes:
+        - artifacts:read
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - authorized-xml
+              - ride-pdf
+      responses:
+        "200":
+          description: Private artifact attachment
+          headers:
+            ETag:
+              description: Quoted SHA-256
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+              example: no-store
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/xml:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "401":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "403":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "404":
+          description: Resource unavailable or request rejected
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "409":
+          description: Document not authorized
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+  /api/v1/documents/{documentId}/ride-job:
+    get:
+      tags:
+        - Documents
+      operationId: readRideJob
+      summary: Read durable RIDE generation status
+      description: Requires artifacts:read and an active tenant owning the document. A missing job returns
+        404. PDF generation failures preserve fiscal authorization. This operation never submits
+        documents to the SRI.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Durable job status
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: no-store
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - state
+                  - attempts
+                  - nextAttemptAt
+                properties:
+                  state:
+                    type: string
+                    enum:
+                      - PENDING
+                      - RUNNING
+                      - COMPLETED
+                      - DEAD
+                      - BLOCKED
+                  attempts:
+                    type: integer
+                    minimum: 0
+                  nextAttemptAt:
+                    type: string
+                    format: date-time
+                  failureCategory:
+                    type: string
+                    nullable: true
+                    enum:
+                      - TRANSIENT
+                      - VALIDATION
+                      - INTEGRITY
+                      - EXTERNAL_UNKNOWN
+                      - PERMANENT
+        "401":
+          description: Authentication required
+        "403":
+          description: Scope missing or tenant inactive
+        "404":
+          description: Resource unavailable
+        "429":
+          $ref: "#/components/responses/TrafficLimited"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+
+  /api/v1/tenants/{tenantId}/api-clients:
+    get:
+      tags: [Administration]
+      operationId: listApiClients
+      summary: List client metadata without secret hashes
+      security: [{bearerAuth: []}]
+      x-required-scopes: [platform:admin]
+      parameters:
+        - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 25}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}}
+      responses:
+        '200':
+          description: Client metadata; no passwords, hashes or certificates; Cache-Control no-store
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: string, format: uuid}
+                    tenantId: {type: string, format: uuid}
+                    clientId: {type: string}
+                    name: {type: string}
+                    status: {type: string}
+                    scopes: {type: array, items: {type: string}}
+        '400': {description: Invalid pagination}
+        '401': {description: Authentication required}
+        '403': {description: Platform operator required}
+    parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    post:
+      tags: [Administration]
+      operationId: createApiClient
+      summary: Create customer credentials (platform operator only)
+      description: Requires platform:admin. Returns a random secret once; only BCrypt is persisted. Customer scopes cannot grant platform:admin or operations:read.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              additionalProperties: false
+              properties:
+                name: {type: string, minLength: 1, maxLength: 150}
+                scopes:
+                  type: array
+                  minItems: 1
+                  maxItems: 8
+                  uniqueItems: true
+                  items:
+                    type: string
+                    enum: ['invoices:write', 'documents:read', 'artifacts:read', 'taxpayers:write', 'establishments:write', 'points-of-issue:write', 'certificates:write', 'certificates:read']
+      responses:
+        '201':
+          description: Credentials returned once. Cache-Control no-store; deliver through a secure secret channel.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ClientCredentials'}
+        '400': {description: Invalid request or scope}
+        '401': {description: Authentication required}
+        '403': {description: Platform operator required}
+        '404': {description: Active tenant not found}
+        '429': {description: Traffic limit exceeded; respect Retry-After}
+  /api/v1/tenants/{tenantId}/api-clients/{id}/rotate-secret:
+    parameters:
+      - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [Administration]
+      operationId: rotateClientSecret
+      summary: Rotate a customer secret (platform operator only)
+      description: Old secret stops authenticating; already-issued JWTs remain valid until expiry unless the client is revoked.
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: New credentials returned once with Cache-Control no-store
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ClientCredentials'}
+        '401': {description: Authentication required}
+        '403': {description: Platform operator required}
+        '404': {description: Active client in this tenant not found}
+  /api/v1/tenants/{tenantId}/api-clients/{id}/revoke:
+    parameters:
+      - {name: tenantId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [Administration]
+      operationId: revokeApiClient
+      summary: Revoke a customer API client (platform operator only)
+      security: [{bearerAuth: []}]
+      responses:
+        '204': {description: Revoked; new authentication and subsequent JWT validation are refused}
+        '401': {description: Authentication required}
+        '403': {description: Platform operator required}
+        '404': {description: Active client in this tenant not found}
+  /api/v1/taxpayers/{taxpayerId}/certificates:
+    parameters:
+      - {name: taxpayerId, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [Administration]
+      operationId: listCertificateMetadata
+      summary: List certificate metadata in the current tenant
+      security: [{bearerAuth: []}]
+      description: Requires certificates:read and taxpayer ownership. No PKCS#12, password or private key is returned.
+      responses:
+        '200':
+          description: Metadata only; Cache-Control no-store
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: string, format: uuid}
+                    fingerprint: {type: string}
+                    status: {type: string}
+                    validUntil: {type: string, format: date-time}
+        '401': {description: Authentication required}
+        '403': {description: Missing scope or different tenant}
+    post:
+      tags: [Administration]
+      operationId: registerReviewedCertificate
+      summary: Register or rotate a reviewed TEST signing certificate
+      description: Requires certificates:write and taxpayer ownership. Explicitly enabled by the operator. Server-owned CA trust and current CRLs, certified RUC and administrative authorization review are mandatory. Does not activate signing or SRI transmission. Previous document certificate snapshots remain intact. Evidence hash alone is not legal proof; retain the reviewed evidence privately.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [certificate, password, authorizationEvidence, authorizationReviewed]
+              properties:
+                certificate: {type: string, format: binary, description: 'PKCS#12, maximum 1 MiB'}
+                password: {type: string, format: password, maxLength: 1024, writeOnly: true}
+                alias: {type: string, maxLength: 255}
+                authorizationEvidence: {type: string, format: binary, description: 'Reviewed authority evidence, maximum 256 KiB; only SHA-256 retained'}
+                authorizationReviewed: {type: boolean, enum: [true]}
+      responses:
+        '201':
+          description: AES-GCM encrypted registration; response contains only metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: {type: string, format: uuid}
+                  fingerprint: {type: string, pattern: '^[a-f0-9]{64}$'}
+                  validUntil: {type: string, format: date-time}
+        '400': {description: Invalid upload or unreviewed authority}
+        '401': {description: Authentication required}
+        '403': {description: Missing scope or different tenant}
+        '404': {description: Administration disabled or active TEST taxpayer not found}
+        '413': {description: Upload too large}
+        '422': {description: Invalid key, password, validity, chain, revocation or certified RUC}
+        '503': {description: Server CA or CRL configuration unavailable}
 components:
 
   securitySchemes:
@@ -456,11 +927,18 @@ components:
       bearerFormat: JWT
 
   schemas:
+    ClientCredentials:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        tenantId: {type: string, format: uuid}
+        clientId: {type: string}
+        clientSecret: {type: string, format: password}
 
     CreateTenantRequest:
       type: object
       additionalProperties: false
-      required: [name]
+      required: [ name ]
       properties:
         name:
           type: string
@@ -469,7 +947,7 @@ components:
 
     TenantResponse:
       type: object
-      required: [id, name, status, createdAt, updatedAt]
+      required: [ id, name, status, createdAt, updatedAt ]
       properties:
         id:
           type: string
@@ -489,7 +967,7 @@ components:
     CreateTaxpayerRequest:
       type: object
       additionalProperties: false
-      required: [ruc, legalName, mainAddress]
+      required: [ ruc, legalName, mainAddress ]
       properties:
         ruc:
           type: string
@@ -510,7 +988,20 @@ components:
 
     TaxpayerResponse:
       type: object
-      required: [id, tenantId, ruc, legalName, tradeName, mainAddress, status, testEnabled, productionEnabled, createdAt, updatedAt]
+      required:
+        [
+          id,
+          tenantId,
+          ruc,
+          legalName,
+          tradeName,
+          mainAddress,
+          status,
+          testEnabled,
+          productionEnabled,
+          createdAt,
+          updatedAt
+        ]
       properties:
         id:
           type: string
@@ -543,7 +1034,7 @@ components:
     CreateEstablishmentRequest:
       type: object
       additionalProperties: false
-      required: [code]
+      required: [ code ]
       properties:
         code:
           type: string
@@ -559,7 +1050,7 @@ components:
 
     EstablishmentResponse:
       type: object
-      required: [id, taxpayerId, code, name, address, status, createdAt, updatedAt]
+      required: [ id, taxpayerId, code, name, address, status, createdAt, updatedAt ]
       properties:
         id:
           type: string
@@ -587,7 +1078,7 @@ components:
     CreatePointOfIssueRequest:
       type: object
       additionalProperties: false
-      required: [code]
+      required: [ code ]
       properties:
         code:
           type: string
@@ -600,7 +1091,7 @@ components:
 
     PointOfIssueResponse:
       type: object
-      required: [id, establishmentId, code, name, status, createdAt, updatedAt]
+      required: [ id, establishmentId, code, name, status, createdAt, updatedAt ]
       properties:
         id:
           type: string
@@ -917,3 +1408,53 @@ components:
 
         code:
           type: string
+  responses:
+    TrafficLimited:
+      description: Configured traffic bucket exhausted. Independent of monthly commercial quotas.
+      headers:
+        Retry-After:
+          description: Minimum delay in seconds before a new request.
+          schema:
+            type: integer
+            minimum: 1
+        Cache-Control:
+          schema:
+            type: string
+          example: no-store
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+                example: 429
+              title:
+                type: string
+              type:
+                type: string
+    TemporarilyUnavailable:
+      description: Traffic protection or an operation dependency is temporarily unavailable. Existing
+        durable fiscal work continues independently of Redis.
+      headers:
+        Retry-After:
+          description: Minimum delay in seconds before a new request.
+          schema:
+            type: integer
+            minimum: 1
+        Cache-Control:
+          schema:
+            type: string
+          example: no-store
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+                example: 503
+              title:
+                type: string
+              type:
+                type: string

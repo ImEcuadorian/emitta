@@ -126,7 +126,7 @@ public final class SriSoapAuthorizationAdapter
             HttpResponse<byte[]> response =
                     httpClient.send(
                             httpRequest,
-                            HttpResponse.BodyHandlers.ofByteArray()
+                            io.github.imecuadorian.emitta.shared.resilience.SriSoapBodyHandlers.timedBytes(requestTimeout)
                     );
 
             return parseResponse(
@@ -153,12 +153,35 @@ public final class SriSoapAuthorizationAdapter
         }
     }
 
+    private static SriAuthorizationException upstreamUnavailable(byte[] responseBody,int status) {
+        var communication=new IOException("Upstream HTTP status " + status);
+        try {
+            var envelope=parseXml(responseBody);
+            if(SOAP_NAMESPACE.equals(envelope.getNamespaceURI()) && matches(envelope,"Envelope")) {
+                var body=child(envelope,"Body");
+                var fault=body==null?null:child(body,"Fault");
+                if(fault!=null) {
+                    String detail="SRI SOAP Fault: " + requiredText(fault,"faultstring");
+                    String code=optionalText(fault,"faultcode");
+                    // SOAP Client faults describe an invalid request; retrying it cannot fix validation.
+                    if(code!=null && (code.equals("Client") || code.endsWith(":Client")))
+                        return new SriAuthorizationException(detail);
+                    return new SriAuthorizationException(detail,communication);
+                }
+            }
+        } catch(SriAuthorizationException invalidResponse) {
+            communication.addSuppressed(invalidResponse);
+        }
+        return new SriAuthorizationException("SRI authorization temporarily unavailable",communication);
+    }
+
     private SriAuthorizationResult parseResponse(
             byte[] responseBody,
             int httpStatus,
             String requestedAccessKey
     ) {
 
+        if(httpStatus>=500 || httpStatus==429) throw upstreamUnavailable(responseBody,httpStatus);
         Element envelope = parseXml(responseBody);
 
         if (!SOAP_NAMESPACE.equals(envelope.getNamespaceURI())

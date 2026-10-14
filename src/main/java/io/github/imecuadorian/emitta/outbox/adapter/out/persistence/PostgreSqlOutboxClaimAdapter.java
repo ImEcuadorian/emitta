@@ -16,14 +16,18 @@ public class PostgreSqlOutboxClaimAdapter
         implements OutboxClaimPort {
 
     private final JdbcTemplate jdbcTemplate;
+    private final io.micrometer.core.instrument.MeterRegistry metrics;
 
     public PostgreSqlOutboxClaimAdapter(
             JdbcTemplate jdbcTemplate
     ) {
-        this.jdbcTemplate =
-                Objects.requireNonNull(
-                        jdbcTemplate
-                );
+        this(jdbcTemplate,new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public PostgreSqlOutboxClaimAdapter(JdbcTemplate jdbcTemplate,io.micrometer.core.instrument.MeterRegistry metrics) {
+        this.metrics=metrics;
+        this.jdbcTemplate = new JdbcTemplate(Objects.requireNonNull(jdbcTemplate.getDataSource()));
+        this.jdbcTemplate.setQueryTimeout(5);
     }
 
     @Override
@@ -32,6 +36,10 @@ public class PostgreSqlOutboxClaimAdapter
             int batchSize,
             Instant staleBefore
     ) {
+        return metrics.timer("emitta.outbox.claim.duration").record(() -> claim(workerId,batchSize,staleBefore));
+    }
+
+    private List<PendingOutboxEvent> claim(String workerId,int batchSize,Instant staleBefore) {
 
         Objects.requireNonNull(
                 workerId,
@@ -123,11 +131,33 @@ public class PostgreSqlOutboxClaimAdapter
     }
 
     @Override
+    public java.util.Set<UUID> markPublishedBatch(List<UUID> ids,String workerId,Instant publishedAt) {
+        if(ids.isEmpty())return java.util.Set.of();
+        return metrics.timer("emitta.outbox.mark.duration").record(() -> {
+            var marked=jdbcTemplate.query(connection -> {
+                var statement=connection.prepareStatement("UPDATE emitta.outbox_events SET published_at=?,claimed_at=NULL,claimed_by=NULL,last_error=NULL WHERE id=ANY(?) AND published_at IS NULL AND claimed_by=? RETURNING id");
+                statement.setQueryTimeout(5);
+                statement.setObject(1,publishedAt.atOffset(ZoneOffset.UTC));
+                statement.setArray(2,connection.createArrayOf("uuid",ids.toArray()));
+                statement.setString(3,workerId);return statement;
+            },(rs,row)->rs.getObject(1,UUID.class));
+            metrics.counter("emitta.outbox.published").increment(marked.size());
+            return new java.util.HashSet<>(marked);
+        });
+    }
+
+    @Override
     public boolean markPublished(
             UUID eventId,
             String workerId,
             Instant publishedAt
     ) {
+        boolean marked=metrics.timer("emitta.outbox.mark.duration").record(() -> mark(eventId,workerId,publishedAt));
+        if(marked) metrics.counter("emitta.outbox.published").increment();
+        return marked;
+    }
+
+    private boolean mark(UUID eventId,String workerId,Instant publishedAt) {
 
         int updated =
                 jdbcTemplate.update(

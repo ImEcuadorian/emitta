@@ -38,6 +38,8 @@ class PublishPendingOutboxServiceTest {
 
     @BeforeEach
     void setUp() {
+        doCallRealMethod().when(messagePublisher).publishBatch(anyList());
+        doCallRealMethod().when(outboxClaimPort).markPublishedBatch(anyList(),anyString(),any());
 
         service =
                 new PublishPendingOutboxService(
@@ -155,7 +157,7 @@ class PublishPendingOutboxServiceTest {
                         NOW.plusSeconds(1)
                 ),
                 contains(
-                        "Rabbit unavailable"
+                        "IllegalStateException"
                 )
         );
 

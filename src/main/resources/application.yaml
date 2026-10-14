@@ -1,11 +1,20 @@
 spring:
   profiles:
     default: dev
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 2MB
+      file-size-threshold: 2MB
   jackson:
     deserialization:
       fail-on-unknown-properties: true
   application:
     name: emitta
+  task:
+    scheduling:
+      pool:
+        size: 3
 
   # ===========================================================
   # APPLICATION DATABASE USER
@@ -18,9 +27,9 @@ spring:
     driver-class-name: org.postgresql.Driver
 
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
+      maximum-pool-size: ${EMITTA_DB_POOL_MAX:10}
+      minimum-idle: ${EMITTA_DB_POOL_MIN:2}
+      connection-timeout: ${EMITTA_DB_CONNECTION_TIMEOUT_MS:30000}
       idle-timeout: 600000
       max-lifetime: 1800000
 
@@ -66,17 +75,27 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:56379}
+      timeout: ${EMITTA_REDIS_TIMEOUT:PT1S}
+      connect-timeout: ${EMITTA_REDIS_CONNECT_TIMEOUT:PT1S}
 
   # ===========================================================
   # RABBITMQ
   # ===========================================================
 
   rabbitmq:
+    connection-timeout: ${EMITTA_RABBIT_CONNECTION_TIMEOUT:3s}
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:55672}
     username: ${RABBITMQ_USERNAME:emitta}
     password: ${RABBITMQ_PASSWORD}
     publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    listener:
+      simple:
+        prefetch: 5
+        default-requeue-rejected: true
 
 springdoc:
   swagger-ui:
@@ -84,6 +103,7 @@ springdoc:
     path: /swagger-ui.html
 
 server:
+  forward-headers-strategy: NONE
   port: ${SERVER_PORT:18080}
 
 
@@ -95,17 +115,55 @@ management:
           - health
           - info
           - metrics
+          - prometheus
+
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        emitta.processing.duration: true
+        emitta.sri.duration: true
+        emitta.database.probe: true
 
   endpoint:
     health:
       show-details: never
 
 emitta:
+  observability:
+    enabled: ${EMITTA_OBSERVABILITY_ENABLED:true}
+    sample-ms: ${EMITTA_OBSERVABILITY_SAMPLE_MS:15000}
+  processing:
+    admission:
+      batch-size: ${EMITTA_ADMISSION_BATCH_SIZE:50}
+      concurrency: ${EMITTA_ADMISSION_CONCURRENCY:1}
+      receive-timeout-ms: ${EMITTA_ADMISSION_RECEIVE_TIMEOUT_MS:100}
+      outage-cooldown: ${EMITTA_ADMISSION_OUTAGE_COOLDOWN:PT30S}
+      retries: ${EMITTA_ADMISSION_RETRIES:2}
+      initial-delay: ${EMITTA_ADMISSION_INITIAL_DELAY:PT1S}
+      max-delay: ${EMITTA_ADMISSION_MAX_DELAY:PT5S}
+    jobs:
+      enabled: ${EMITTA_PROCESSING_JOBS_ENABLED:false}
+      max-attempts: ${EMITTA_PROCESSING_MAX_ATTEMPTS:5}
+      lease: ${EMITTA_PROCESSING_LEASE:PT2M}
+      initial-backoff: ${EMITTA_PROCESSING_INITIAL_BACKOFF:PT2S}
+      maximum-backoff: ${EMITTA_PROCESSING_MAXIMUM_BACKOFF:PT2M}
+      batch-size: ${EMITTA_PROCESSING_BATCH_SIZE:5}
+      poll-ms: ${EMITTA_PROCESSING_POLL_MS:2000}
   outbox:
     publisher:
       enabled: ${EMITTA_OUTBOX_PUBLISHER_ENABLED:false}
+      batch-size: ${EMITTA_OUTBOX_BATCH_SIZE:50}
+      claim-lease: ${EMITTA_OUTBOX_CLAIM_LEASE:PT2M}
+      initial-backoff: ${EMITTA_OUTBOX_INITIAL_BACKOFF:PT1S}
+      maximum-backoff: ${EMITTA_OUTBOX_MAXIMUM_BACKOFF:PT1M}
       fixed-delay-ms: 250
       initial-delay-ms: 1000
+    admission:
+      enabled: ${EMITTA_OUTBOX_ADMISSION_ENABLED:true}
+      maximum-pending: ${EMITTA_OUTBOX_ADMISSION_MAX_PENDING:5000}
+      maximum-age-seconds: ${EMITTA_OUTBOX_ADMISSION_MAX_AGE_SECONDS:60}
+      sample-ms: ${EMITTA_OUTBOX_ADMISSION_SAMPLE_MS:2000}
   fiscal:
     issue-zone: America/Guayaquil
     provider-policy:
@@ -117,6 +175,17 @@ emitta:
       enabled: ${EMITTA_FISCAL_WORKER_ENABLED:false}
 
   security:
+    allowed-web-origins: ${EMITTA_SECURITY_ALLOWED_WEB_ORIGINS:}
+    trusted-cloudflare-peers: ${EMITTA_TRUSTED_CLOUDFLARE_PEERS:}
+    rate-limit:
+      enabled: ${EMITTA_RATE_LIMIT_ENABLED:true}
+      policies:
+        ip: { capacity: 120, refill-per-second: 2 }
+        ip-authentication: { capacity: 10, refill-per-second: 0.1666667 }
+        client: { capacity: 120, refill-per-second: 2 }
+        client-authentication: { capacity: 10, refill-per-second: 0.1666667 }
+        tenant: { capacity: 300, refill-per-second: 5 }
+        tenant-invoices: { capacity: 60, refill-per-second: 1 }
     jwt:
       issuer: emitta
       audience: emitta-api
@@ -134,10 +203,35 @@ emitta:
       secret-key: ${EMITTA_ARTIFACT_STORAGE_SECRET_KEY}
       path-style-access: ${EMITTA_ARTIFACT_STORAGE_PATH_STYLE}
 
+  ride:
+    enabled: ${EMITTA_RIDE_ENABLED:false}
+
+  certificates:
+    administration:
+      enabled: ${EMITTA_CERTIFICATE_ADMINISTRATION_ENABLED:false}
+      trusted-ca-file: ${EMITTA_CERTIFICATE_TRUSTED_CA_FILE:}
+      crl-file: ${EMITTA_CERTIFICATE_CRL_FILE:}
   signing:
     enabled: ${EMITTA_SIGNING_ENABLED:false}
 
   sri:
+    resilience:
+      reception:
+        concurrent-calls: ${EMITTA_SRI_RECEPTION_CONCURRENCY:8}
+        window-size: 20
+        minimum-calls: 10
+        failure-threshold: 50
+        open-wait: ${EMITTA_SRI_RECEPTION_OPEN_WAIT:PT15S}
+        max-attempts: 1
+        retry-delay: PT0S
+      authorization:
+        concurrent-calls: ${EMITTA_SRI_AUTHORIZATION_CONCURRENCY:8}
+        window-size: 20
+        minimum-calls: 10
+        failure-threshold: 50
+        open-wait: ${EMITTA_SRI_AUTHORIZATION_OPEN_WAIT:PT15S}
+        max-attempts: ${EMITTA_SRI_AUTHORIZATION_ATTEMPTS:2}
+        retry-delay: ${EMITTA_SRI_AUTHORIZATION_RETRY_DELAY:PT0.2S}
     authorization:
       enabled: ${EMITTA_SRI_AUTHORIZATION_ENABLED:false}
 

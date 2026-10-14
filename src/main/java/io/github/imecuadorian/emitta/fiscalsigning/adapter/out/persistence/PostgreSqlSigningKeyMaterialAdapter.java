@@ -281,7 +281,7 @@ public final class PostgreSqlSigningKeyMaterialAdapter
         return selection.activeSigningCertificateId();
     }
 
-    /** Local operator-only onboarding. Never exposed as a web endpoint. */
+    /** Reviewed onboarding shared by local operators and the scoped administrative API. */
     public UUID registerReviewedCertificate(UUID tenantId, UUID taxpayerId, String expectedRuc,
             SigningKeyMaterial material, Pkcs12CertificateValidator.Validated validated,
             String evidenceSha256, Instant now) {
@@ -333,6 +333,7 @@ public final class PostgreSqlSigningKeyMaterialAdapter
                     throw new SigningCertificateException("Cannot reactivate disabled or revoked certificate");
                 jdbcClient.sql("UPDATE taxpayers SET active_signing_certificate_id=:id WHERE id=:taxpayer AND tenant_id=:tenant")
                         .param("id", id).param("taxpayer", taxpayerId).param("tenant", tenantId).update();
+                io.github.imecuadorian.emitta.auth.adapter.out.persistence.AdministrationAuditRecorder.record(jdbcClient,tenantId,id,"CERTIFICATE_REGISTERED");
                 return id;
             } catch (java.security.cert.CertificateEncodingException e) {
                 throw new SigningCertificateException("Cannot encode certificate identity", e);

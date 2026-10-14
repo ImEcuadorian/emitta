@@ -18,6 +18,13 @@ public final class JwtTestProperties {
             DynamicPropertyRegistry registry
     ) {
 
+        registry.add("emitta.security.rate-limit.enabled", () -> "false");
+        registry.add("emitta.outbox.admission.enabled", () -> "false");
+        // Most existing isolated contexts do not provision Redis. Never probe the developer's service.
+        registry.add("emitta.observability.enabled", () -> "false");
+        registry.add("spring.data.redis.host", () -> "127.0.0.1");
+        registry.add("spring.data.redis.port", () -> 1);
+        registry.add("management.health.redis.enabled", () -> "false");
         registry.add(
                 "emitta.security.jwt.private-key-b64",
                 () ->

@@ -46,6 +46,8 @@ import static org.junit.jupiter.api.Assertions.*;
         properties = {
                 "emitta.outbox.publisher.enabled=false",
                 "emitta.fiscal.worker.enabled=true",
+                "emitta.processing.jobs.enabled=true",
+                "emitta.processing.jobs.poll-ms=100",
                 "spring.rabbitmq.publisher-confirm-type=correlated"
         }
 )
