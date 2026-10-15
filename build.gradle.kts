@@ -1,3 +1,4 @@
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.util.jar.Manifest
 import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
