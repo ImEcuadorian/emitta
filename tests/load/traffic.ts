@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
-import { Counter, Rate } from 'k6/metrics';
+import { Counter, Rate, Trend } from 'k6/metrics';
 
 // The harness creates this file inside a disposable container; it never contains production credentials.
 const fixture = JSON.parse(open('/work/fixture.json'));
@@ -21,6 +21,10 @@ const unavailable = new Counter('requests_unavailable');
 const unknown = new Counter('invoice_response_unknown');
 const admissionRejected = new Counter('invoice_rejected_before_commit');
 const integrity = new Rate('idempotency_intact');
+// Track individual synchronous endpoint latencies independently of the mixed HTTP trend.
+const createDuration = new Trend('invoice_create_duration_ms', true);
+const replayDuration = new Trend('invoice_replay_duration_ms', true);
+const readDuration = new Trend('document_read_duration_ms', true);
 const scenarios = profile === 'academic-sustained' ? {
   traffic: { executor: 'ramping-vus', startVUs: 0, stages: [
     { duration: '2m', target: vus },
@@ -70,6 +74,7 @@ export default function (data: { token: string }) {
     'Idempotency-Key': key }, tags: { name: 'invoice-admission' }, timeout: '10s' };
   const body = JSON.stringify({ ...fixture.invoice, issuedAt: new Date().toISOString() });
   const response = http.post(`${base}/api/v1/invoices`, body, params);
+  createDuration.add(response.timings.duration);
   let rejectedBeforeCommit = false;
   if (response.status === 503) {
     try { rejectedBeforeCommit = response.json('code') === 'ADMISSION_SATURATED'; } catch { /* Other 503 remains unknown. */ }
@@ -83,12 +88,14 @@ export default function (data: { token: string }) {
   const id = response.json('id');
   // Replay the identical key/body: no new document, access key, sequential or outbox event.
   const replay = http.post(`${base}/api/v1/invoices`, body, params);
+  replayDuration.add(replay.timings.duration);
   const same = replay.status === 200 && replay.json('id') === id;
   integrity.add(same);
   check(replay, { 'same document on replay': () => same });
   const read = http.get(`${base}/api/v1/documents/${id}`, {
     headers: { Authorization: `Bearer ${data.token}` }, tags: { name: 'document-status' }, timeout: '10s',
   });
+  readDuration.add(read.timings.duration);
   check(read, { 'durable document readable': (r) => r.status === 200 });
   sleep(0.2);
 }
