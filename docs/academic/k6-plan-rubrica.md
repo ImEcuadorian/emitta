@@ -47,6 +47,9 @@ La duración es el plateau del pico. Los resultados se almacenan localmente en b
 | p90 | http_req_duration.values["p(90)"] | Registrar unidades en ms |
 | p95 | http_req_duration.values["p(95)"] | Comparar con ideal académico de 500 ms |
 | p99 | http_req_duration.values["p(99)"] | Reconocer cola de latencia |
+| POST creación p90/p95/p99 | invoice_create_duration_ms | Trend propia: no mezclar con replay/GET |
+| POST replay p90/p95/p99 | invoice_replay_duration_ms | Comprueba idempotencia |
+| GET documento p90/p95/p99 | document_read_duration_ms | Acceso autenticado |
 | Error Rate | http_req_failed.values.rate | Registrar 429/503 y causa |
 | Throughput documentos | invoices_accepted / duración | No igualar a autorizaciones SRI |
 | CPU/memoria | resources.csv + container-resources.jsonl | Señalar muestreo y presupuesto |
