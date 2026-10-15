@@ -10,16 +10,31 @@ if (!/^http:\/\/host\.testcontainers\.internal:\d+$/.test(base || '')) {
 }
 const profile = __ENV.PROFILE || 'normal';
 const vus = Number(__ENV.VUS || '20');
-if (!['normal', 'sustained', 'spike'].includes(profile)) throw new Error('Invalid profile');
+if (!['normal', 'sustained', 'spike', 'academic-sustained', 'academic-spike'].includes(profile)) throw new Error('Invalid profile');
 if (profile === 'normal' && ![20, 50, 100].includes(vus)) throw new Error('Normal VUs: 20, 50, 100');
-if (profile === 'sustained' && ![100, 200].includes(vus)) throw new Error('Sustained VUs: 100, 200');
+if (['sustained', 'academic-sustained'].includes(profile) && ![100, 200].includes(vus)) throw new Error('Sustained VUs: 100, 200');
+if (profile === 'academic-spike' && vus !== 500) throw new Error('Academic spike requires 500 VUs');
 const accepted = new Counter('invoices_accepted');
 const limited = new Counter('requests_limited');
 const unavailable = new Counter('requests_unavailable');
 const unknown = new Counter('invoice_response_unknown');
 const admissionRejected = new Counter('invoice_rejected_before_commit');
 const integrity = new Rate('idempotency_intact');
-const scenarios = profile === 'spike' ? {
+const scenarios = profile === 'academic-sustained' ? {
+  traffic: { executor: 'ramping-vus', startVUs: 0, stages: [
+    { duration: '2m', target: vus },
+    { duration: __ENV.DURATION || '5m', target: vus },
+    { duration: '1m', target: 0 },
+  ], gracefulRampDown: '15s', gracefulStop: '30s' },
+} : profile === 'academic-spike' ? {
+  traffic: { executor: 'ramping-vus', startVUs: 50, stages: [
+    { duration: '30s', target: 50 },
+    { duration: '1s', target: 500 },
+    { duration: __ENV.DURATION || '1m', target: 500 },
+    { duration: '1s', target: 0 },
+    { duration: '30s', target: 0 },
+  ], gracefulRampDown: '15s', gracefulStop: '30s' },
+} : profile === 'spike' ? {
   traffic: { executor: 'ramping-vus', startVUs: 20, stages: [
     { duration: '20s', target: 20 }, { duration: '10s', target: 500 },
     { duration: __ENV.DURATION || '30s', target: 500 },
@@ -31,7 +46,7 @@ const scenarios = profile === 'spike' ? {
 export const options = {
   scenarios,
   maxRedirects: 0,
-  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(50)', 'p(95)', 'p(99)'],
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(50)', 'p(90)', 'p(95)', 'p(99)'],
   thresholds: {
     checks: ['rate==1'], idempotency_intact: ['rate==1'],
     http_req_failed: ['rate<0.01'], http_req_duration: ['p(95)<2000', 'p(99)<5000'],
