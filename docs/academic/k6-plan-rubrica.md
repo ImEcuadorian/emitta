@@ -14,7 +14,13 @@ El escenario sostenido de etapas previas usa constant-vus y no ejecuta ramp-up/r
 - Repetir de modo exploratorio a 125/150/175/200 VUs según capacidad observada y resultados.
 - Límites: recursos aislados, datos sintéticos, Redis test y firma/RIDE/SRI OFF.
 
-El perfil academic-sustained en tests/load/traffic.ts se ejecuta mediante Test-OperationalLoad.ps1 con -Profile academic-sustained, una vez que los cambios queden integrados.
+Comando ejecutable en Windows, desde la carpeta del backend (Docker activo; Testcontainers sintéticos):
+
+~~~powershell
+.\scripts\Test-OperationalLoad.ps1 -Profile academic-sustained -Vus 100 -Duration 5m -AdmissionConcurrency 1
+~~~
+
+Para explorar el punto de ruptura, ejecutar **por separado**, no en paralelo, 125, 150, 175 y 200 VUs con la misma infraestructura y configuración, después de confirmar que 100 pasó. El perfil original sustained no cambia.
 
 ## Perfil B: pico extremo
 
@@ -24,6 +30,13 @@ El perfil academic-sustained en tests/load/traffic.ts se ejecuta mediante Test-O
 - Descenso: 1 segundo a 0.
 - Drenaje de mensajes y recuperación hasta cinco minutos.
 - Los recursos asignados a k6/infraestructura deben revisarse primero; NO ejecutar sobre API staging externa ni piloto.
+
+~~~powershell
+# Requiere revisión de capacidad previa; no quitar -DimensionedSpike.
+.\scripts\Test-OperationalLoad.ps1 -Profile academic-spike -Vus 500 -Duration 1m -DimensionedSpike -AdmissionConcurrency 1
+~~~
+
+La duración es el plateau del pico. Los resultados se almacenan localmente en build/operational/load; no se publican fixtures ni tokens.
 
 ## Indicadores de entrega
 
