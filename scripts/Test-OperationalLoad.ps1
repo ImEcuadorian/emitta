@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('normal', 'sustained', 'spike', 'academic-sustained', 'academic-spike')][string]$Profile = 'normal',
-    [ValidateSet(20, 50, 100, 200, 500)][int]$Vus = 20,
+    [ValidateSet(20, 50, 100, 125, 150, 175, 200, 500)][int]$Vus = 20,
     [ValidatePattern('^[1-9][0-9]*(s|m)$')][string]$Duration = '30s',
     [switch]$DimensionedSpike,
     [ValidateSet(1,2)][int]$AdmissionConcurrency = 1
@@ -14,7 +14,8 @@ $seconds = [int]$Duration.Substring(0, $Duration.Length - 1)
 if ($Duration.EndsWith('m')) { $seconds *= 60 }
 if ($seconds -gt 600) { throw 'Maximum controlled duration is 10m; longer tests require a token renewal design' }
 if ($Profile -eq 'normal' -and $Vus -notin @(20, 50, 100)) { throw 'Normal: 20, 50 or 100 VUs' }
-if ($Profile -in @('sustained','academic-sustained') -and $Vus -notin @(100, 200)) { throw 'Sustained: 100 or 200 VUs' }
+if ($Profile -eq 'sustained' -and $Vus -notin @(100, 200)) { throw 'Sustained: 100 or 200 VUs' }
+if ($Profile -eq 'academic-sustained' -and $Vus -notin @(100, 125, 150, 175, 200)) { throw 'Academic sustained: 100, 125, 150, 175 or 200 VUs' }
 if ($Profile -in @('spike','academic-spike') -and (-not $DimensionedSpike -or $Vus -ne 500)) { throw 'Spike requires 500 VUs and -DimensionedSpike after resource review' }
 $settings = @{ EMITTA_LOAD_PROFILE = $Profile; EMITTA_LOAD_VUS = "$Vus"; EMITTA_LOAD_DURATION = $Duration; EMITTA_LOAD_SPIKE_DIMENSIONED = "$($DimensionedSpike.IsPresent)".ToLowerInvariant() }
 $settings.EMITTA_LOAD_ADMISSION_CONCURRENCY = "$AdmissionConcurrency"
