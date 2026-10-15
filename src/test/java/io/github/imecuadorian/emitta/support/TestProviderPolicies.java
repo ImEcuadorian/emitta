@@ -3,7 +3,7 @@ package io.github.imecuadorian.emitta.support;
 import io.github.imecuadorian.emitta.shared.fiscal.ProviderPolicy;
 
 public final class TestProviderPolicies {
-    public static final String HASH = "af040e9d52eaa1545b50ade55f5c3752450a036235850fd7dd17c643d258f53a";
+    public static final String HASH = "511375276ef85f7cce42260d89a10a30bbfa1c12f6a4cf93c4b3a55aa781c821";
     public static final String EVIDENCE = "src/test/resources/fiscal/provider-policy-test-evidence.txt";
     public static final String REFERENCE = "https://www.sri.gob.ec/facturacion-electronica";
 
