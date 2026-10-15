@@ -74,13 +74,13 @@ class OperationalLoadTest {
     @Test void syntheticLoadPreservesEveryAcceptedDocumentAndIdempotentEvent() throws Exception {
         String profile=System.getenv().getOrDefault("EMITTA_LOAD_PROFILE","normal");
         String vus=System.getenv().getOrDefault("EMITTA_LOAD_VUS","20");
-        String duration=System.getenv().getOrDefault("EMITTA_LOAD_DURATION",profile.equals("sustained")?"10m":"30s");
-        if(!List.of("normal","sustained","spike").contains(profile))throw new IllegalArgumentException("Invalid load profile");
+        String duration=System.getenv().getOrDefault("EMITTA_LOAD_DURATION",profile.equals("sustained")?"10m":profile.equals("academic-sustained")?"5m":profile.equals("academic-spike")?"1m":"30s");
+        if(!List.of("normal","sustained","spike","academic-sustained","academic-spike").contains(profile))throw new IllegalArgumentException("Invalid load profile");
         if(!duration.matches("^[1-9][0-9]*(s|m)$"))throw new IllegalArgumentException("Invalid controlled duration");
         long durationSeconds=Long.parseLong(duration.substring(0,duration.length()-1));
         if(duration.endsWith("m"))durationSeconds=Math.multiplyExact(durationSeconds,60);
         if(durationSeconds>600)throw new IllegalArgumentException("Maximum duration is 10m without token renewal");
-        if(profile.equals("spike") && !"true".equals(System.getenv("EMITTA_LOAD_SPIKE_DIMENSIONED")))
+        if((profile.equals("spike") || profile.equals("academic-spike")) && !"true".equals(System.getenv("EMITTA_LOAD_SPIKE_DIMENSIONED")))
             throw new IllegalArgumentException("500 VU spike requires EMITTA_LOAD_SPIKE_DIMENSIONED=true after resource review");
         String run=UUID.randomUUID().toString();
         Path directory=Path.of("build/operational/load",profile+"-"+vus+"-"+run).toAbsolutePath();Files.createDirectories(directory);
