@@ -15,6 +15,7 @@ Archivos adicionales:
 - [Matriz de rúbrica y evidencias](matriz-rubrica.md): distingue verificaciones documentadas de acciones aún pendientes.
 - [Guion de presentación](guion-exposicion.md): demostración reproducible sin emitir otra factura al SRI.
 - [Perfil de pruebas exigido](k6-plan-rubrica.md): ramp-up/meseta/ramp-down/spike y plan de medición.
+- [Cierre de publicación y evidencias](cierre-publicacion.md): comandos seguros para sincronizar cambios locales y completar RA4.
 
 ## Evidencias principales del repositorio
 
