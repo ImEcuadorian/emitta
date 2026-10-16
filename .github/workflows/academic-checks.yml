@@ -1,0 +1,46 @@
+name: Academic API Verification
+
+on:
+  push:
+    branches:
+      - academic/ups-ra1-ra4-20261015
+  pull_request:
+    branches:
+      - codex/ride-consolidation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-test-and-coverage:
+    name: Java 25, Testcontainers, JaCoCo
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build and run normal test suite (SRI live explicitly disabled)
+        env:
+          RUN_SRI_LIVE_TEST: 'false'
+        run: bash ./gradlew clean build jacocoTestReport --console=plain
+      - name: Upload coverage report for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-java25
+          path: |
+            build/reports/jacoco/test/html
+            build/reports/jacoco/test/jacocoTestReport.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+# Intentionally NO remote deployment, no live SRI, no secrets,
+# and no k6 load test against public or private environments.

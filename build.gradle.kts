@@ -1,9 +1,11 @@
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.util.jar.Manifest
 import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
 
 plugins {
     java
+    jacoco
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
 }
@@ -20,6 +22,10 @@ java {
 
 repositories {
     mavenCentral()
+}
+
+jacoco {
+    toolVersion = "0.8.15"
 }
 
 dependencies {
@@ -290,4 +296,15 @@ tasks.register<Test>("objectStorageIntegrationTest") {
     }
 
     shouldRunAfter(tasks.test)
+}
+
+// RA4: reproducible code coverage for the current JDK 25 test suite.
+// Percentage is reported only after the task executes; no unverified threshold is imposed.
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
 }
