@@ -306,25 +306,10 @@ class SriSoapAuthorizationAdapterTest {
     }
 
     @Test
-    void shouldUseProductionEndpoint() {
-
-        responseXml =
-                soapResponse(
-                        ACCESS_KEY,
-                        """
-                        <numeroComprobantes>0</numeroComprobantes>
-                        <autorizaciones/>
-                        """
-                );
-
-        adapter.query(
-                request(FiscalEnvironment.PRODUCTION)
-        );
-
-        assertEquals(
-                "/production",
-                lastPath.get()
-        );
+    void shouldRejectProductionBeforeNetworkIo() {
+        lastPath.set(null);
+        assertThrows(IllegalArgumentException.class, () -> adapter.query(request(FiscalEnvironment.PRODUCTION)));
+        assertEquals(null, lastPath.get());
     }
 
     @Test

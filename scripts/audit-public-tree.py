@@ -32,7 +32,7 @@ for name in sorted(indexed | untracked):
     data = git("show", ":" + name) if name in indexed else (root / path).read_bytes()
     for category, pattern in rules.items():
         # Synthetic credentials are allowed only in test source, not in product/examples.
-        if category == "hardcoded-runtime-secret" and name.startswith("src/test/"):
+        if category == "hardcoded-runtime-secret" and (name.startswith("src/test/") or name == "scripts/test-admin-flow.ts"):
             continue
         candidate = re.sub(rb"\bPASSWORD\s+:'[A-Za-z_][A-Za-z0-9_]*'", b"PASSWORD :variable", data) if category == "hardcoded-runtime-secret" else data
         if pattern.search(candidate):

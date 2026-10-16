@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Image = 'dhi.io/minio:0.20251015.172955')
+param([string]$Image = 'dhi.io/minio:0.20251015.172955', [string]$TestFilter = '')
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path -Parent $PSScriptRoot
 $container = 'emitta-isolated-minio-' + [Guid]::NewGuid().ToString('N')
@@ -38,7 +38,9 @@ try {
         catch { Start-Sleep -Milliseconds 500 }
     }
     if (-not $ready) { throw 'Disposable MinIO did not become ready' }
-    & .\gradlew.bat objectStorageIntegrationTest --rerun-tasks --console=plain
+    $testArguments = @('objectStorageIntegrationTest', '--console=plain')
+    if ($TestFilter) { $testArguments += @('--tests', $TestFilter) }
+    & .\gradlew.bat @testArguments
     if ($LASTEXITCODE -ne 0) { throw 'Isolated storage tests failed' }
 } finally {
     foreach ($key in $saved.Keys) {

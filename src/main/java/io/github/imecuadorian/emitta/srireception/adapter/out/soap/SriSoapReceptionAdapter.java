@@ -96,6 +96,15 @@ public final class SriSoapReceptionAdapter
                 "SRI reception request cannot be null"
         );
 
+        if (request.environment() != FiscalEnvironment.TEST)
+            throw new IllegalArgumentException("Production SRI calls are disabled; TEST only");
+        if (!"celcer.sri.gob.ec".equalsIgnoreCase(testEndpoint.getHost())
+                && !"127.0.0.1".equals(testEndpoint.getHost())
+                && !"localhost".equalsIgnoreCase(testEndpoint.getHost()))
+            throw new IllegalArgumentException("Only SRI certification or local test endpoints are allowed");
+        if ("celcer.sri.gob.ec".equalsIgnoreCase(testEndpoint.getHost()) && !"https".equalsIgnoreCase(testEndpoint.getScheme()))
+            throw new IllegalArgumentException("SRI certification requires HTTPS");
+
         URI endpoint =
                 endpointFor(
                         request.environment()

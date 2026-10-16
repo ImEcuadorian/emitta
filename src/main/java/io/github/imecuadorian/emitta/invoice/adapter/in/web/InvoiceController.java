@@ -61,6 +61,10 @@ public class InvoiceController {
             CreateInvoiceRequest request
     ) {
 
+        if (request.environment() != io.github.imecuadorian.emitta.shared.fiscal.FiscalEnvironment.TEST)
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Only SRI TEST is available");
+
         UUID tenantId =
                 tenantId(
                         authentication

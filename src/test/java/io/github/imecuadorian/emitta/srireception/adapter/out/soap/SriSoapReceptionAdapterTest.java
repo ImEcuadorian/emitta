@@ -291,43 +291,11 @@ class SriSoapReceptionAdapterTest {
     }
 
     @Test
-    void shouldUseProductionEndpoint()
-            throws Exception {
-
-        server.createContext(
-                "/production",
-                exchange ->
-                        respond(
-                                exchange,
-                                """
-                                <?xml version="1.0" encoding="UTF-8"?>
-                                <soap:Envelope
-                                    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-                                    <soap:Body>
-                                        <ns2:validarComprobanteResponse
-                                            xmlns:ns2="http://ec.gob.sri.ws.recepcion">
-                                            <RespuestaRecepcionComprobante>
-                                                <estado>RECIBIDA</estado>
-                                                <comprobantes/>
-                                            </RespuestaRecepcionComprobante>
-                                        </ns2:validarComprobanteResponse>
-                                    </soap:Body>
-                                </soap:Envelope>
-                                """
-                        )
-        );
-
-        SriReceptionResult result =
-                adapter().submit(
-                        request(
-                                FiscalEnvironment.PRODUCTION
-                        )
-                );
-
-        assertEquals(
-                SriReceptionStatus.RECEIVED,
-                result.status()
-        );
+    void shouldRejectProductionBeforeNetworkIo() throws Exception {
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        server.createContext("/production", exchange -> {calls.incrementAndGet();exchange.close();});
+        assertThrows(IllegalArgumentException.class, () -> adapter().submit(request(FiscalEnvironment.PRODUCTION)));
+        assertEquals(0, calls.get());
     }
 
     private SriSoapReceptionAdapter adapter() {

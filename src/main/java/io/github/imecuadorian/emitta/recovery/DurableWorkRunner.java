@@ -9,6 +9,8 @@ import io.micrometer.core.instrument.*;
 public final class DurableWorkRunner {
  private final PostgreSqlDurableWorkAdapter jobs;private final ProcessingPolicy policy;private final DocumentRepository documents;
  private final ProcessFiscalDocumentUseCase fiscal;private final ObjectProvider<GenerateAndStoreInvoiceRideUseCase> ride;private final MeterRegistry metrics;
+ private ObjectProvider<SriTestWorkflow> sri;
+ void setSriWorkflow(ObjectProvider<SriTestWorkflow> sri){this.sri=sri;}
  public DurableWorkRunner(PostgreSqlDurableWorkAdapter jobs,ProcessingPolicy policy,DocumentRepository documents,
        ProcessFiscalDocumentUseCase fiscal,ObjectProvider<GenerateAndStoreInvoiceRideUseCase> ride,MeterRegistry metrics) {
   this.jobs=jobs;this.policy=policy;this.documents=documents;this.fiscal=fiscal;this.ride=ride;this.metrics=metrics;
@@ -39,6 +41,7 @@ public final class DurableWorkRunner {
   return completed;
  }
  private void process(DurableWorkPort.Job job) {
+  if(job.kind()==DurableWorkPort.Kind.SRI_TEST) {sri.getObject().process(job);return;}
   var document=documents.findById(job.documentId()).filter(d->d.getTenantId().equals(job.tenantId()))
     .orElseThrow(()->new IllegalArgumentException("Document unavailable"));
   if(job.kind()==DurableWorkPort.Kind.RIDE) {

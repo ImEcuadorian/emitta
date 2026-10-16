@@ -167,6 +167,30 @@ class SecurityIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
     }
 
+    @Test void personalLoginRequiresPrivateEnrollmentAndLocksFailuresDurably() throws Exception {
+        String client="owner-"+tenantId;
+        createApiClient(client,"synthetic-secret","platform:admin");
+        String owner=obtainToken(client,"synthetic-secret");
+        String email="owner-"+tenantId+"@example.invalid";
+        String body="{\"email\":\""+email+"\",\"password\":\"synthetic-personal-password\"}";
+        mockMvc.perform(post("/api/v1/operator/personal-access").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized());
+        createApiClient("customer-"+tenantId,"synthetic-secret","invoices:write");
+        mockMvc.perform(post("/api/v1/operator/personal-access").header("Authorization","Bearer "+obtainToken("customer-"+tenantId,"synthetic-secret"))
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/v1/operator/personal-access").header("Authorization","Bearer "+owner)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/v1/operator/token").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andExpect(jsonPath("$.accessToken").isString());
+        for(int i=0;i<5;i++)mockMvc.perform(post("/api/v1/operator/token").contentType(MediaType.APPLICATION_JSON)
+                .content(body.replace("synthetic-personal-password","incorrect-password"))).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/operator/token").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized());
+        assertEquals(5,jdbcTemplate.queryForObject("SELECT failures FROM emitta.operator_personal_access WHERE email=?",Integer.class,email));
+        jdbcTemplate.update("UPDATE emitta.operator_personal_access SET locked_until=CURRENT_TIMESTAMP-INTERVAL '1 second' WHERE email=?",email);
+        mockMvc.perform(post("/api/v1/operator/token").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk());
+        jdbcTemplate.update("UPDATE emitta.api_clients SET status='REVOKED' WHERE client_id=?",client);
+        mockMvc.perform(post("/api/v1/operator/token").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized());
+    }
+
     @BeforeEach
     void setUp() {
 
@@ -698,7 +722,7 @@ class SecurityIntegrationTest {
     @Test void administrativeListsRequirePlatformScopeAndNeverReturnSecrets() throws Exception {
         createApiClient("metadata-test", "synthetic-secret", "documents:read");
         String token=obtainToken("metadata-test","synthetic-secret");
-        for(String path:java.util.List.of("/api/v1/tenants","/api/v1/tenants/"+tenantId+"/api-clients")) {
+        for(String path:java.util.List.of("/api/v1/operator/overview","/api/v1/tenants","/api/v1/tenants/"+tenantId+"/api-clients")) {
             mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path)).andExpect(status().isUnauthorized());
             mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path).header("Authorization","Bearer "+token)).andExpect(status().isForbidden());
             String body=mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path)
@@ -723,6 +747,17 @@ class SecurityIntegrationTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/v1/tenants")
                 .header("Origin","https://untrusted.example.invalid").header("Access-Control-Request-Method","GET"))
                 .andExpect(status().isForbidden()).andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+    }
+
+    @Test void productionInvoiceIsRejectedBeforeCreation() throws Exception {
+        createApiClient("test-only", "synthetic-secret", "invoices:write");
+        mockMvc.perform(post("/api/v1/invoices")
+                .header("Authorization", "Bearer " + obtainToken("test-only", "synthetic-secret"))
+                .header("Idempotency-Key", "production-must-not-create")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(validInvoiceJson().replace("TEST", "PRODUCTION")))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(createInvoiceUseCase);
     }
 
     private static String validInvoiceJson() {

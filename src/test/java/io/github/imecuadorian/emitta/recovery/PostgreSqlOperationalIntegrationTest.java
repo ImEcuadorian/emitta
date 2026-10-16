@@ -34,11 +34,11 @@ class PostgreSqlOperationalIntegrationTest {
     private long count(Connection c,String sql) throws SQLException {
         try(var s=c.createStatement();var r=s.executeQuery(sql)){r.next();return r.getLong(1);}
     }
-    @Test @Order(1) void allFourteenMigrationsAndActualRuntimePrivileges() throws Exception {
+    @Test @Order(1) void allSixteenMigrationsAndActualRuntimePrivileges() throws Exception {
         var flyway=migrations("classpath:db/migration");
-        assertEquals(14,flyway.migrate().migrationsExecuted);flyway.validate();
+        assertEquals(16,flyway.migrate().migrationsExecuted);flyway.validate();
         try(var app=connect("emitta_app");var readonly=connect("emitta_readonly")) {
-            assertEquals(14,count(readonly,"SELECT count(*) FROM emitta.flyway_schema_history WHERE success AND version IS NOT NULL"));
+            assertEquals(16,count(readonly,"SELECT count(*) FROM emitta.flyway_schema_history WHERE success AND version IS NOT NULL"));
             app.createStatement().execute("INSERT INTO emitta.tenants(name) VALUES ('Synthetic operational tenant')");
             app.createStatement().execute("INSERT INTO emitta.administrative_audit_events(id,tenant_id,action,resource_id) SELECT gen_random_uuid(),id,'CLIENT_CREATED',gen_random_uuid() FROM emitta.tenants");
             assertEquals(1,count(readonly,"SELECT count(*) FROM emitta.administrative_audit_events"));
@@ -56,13 +56,13 @@ class PostgreSqlOperationalIntegrationTest {
     }
     @Test @Order(2) void interruptedTransactionalMigrationRollsBackWithoutRepair() throws Exception {
         Path location=Files.createTempDirectory("emitta-migration-rollback-");
-        Path broken=location.resolve("V15__synthetic_interrupted.sql");
+        Path broken=location.resolve("V17__synthetic_interrupted.sql");
         try {
             Files.writeString(broken,"CREATE TABLE emitta.synthetic_interrupted(id int); SELECT 1/0;");
             assertThrows(org.flywaydb.core.api.FlywayException.class,()->migrations("classpath:db/migration","filesystem:"+location).migrate());
             try(var c=connect("emitta_readonly")) {
                 assertEquals(0,count(c,"SELECT count(*) FROM information_schema.tables WHERE table_schema='emitta' AND table_name='synthetic_interrupted'"));
-                assertEquals(14,count(c,"SELECT count(*) FROM emitta.flyway_schema_history WHERE version IS NOT NULL"));
+                assertEquals(16,count(c,"SELECT count(*) FROM emitta.flyway_schema_history WHERE version IS NOT NULL"));
             }
             Files.delete(broken);
             var resumed=migrations("classpath:db/migration");resumed.validate();
@@ -76,7 +76,7 @@ class PostgreSqlOperationalIntegrationTest {
             assertEquals(0,a.get(30,TimeUnit.SECONDS).migrationsExecuted);
             assertEquals(0,b.get(30,TimeUnit.SECONDS).migrationsExecuted);
         }
-        try(var c=connect("emitta_readonly")){assertEquals(14,count(c,"SELECT count(DISTINCT version) FROM emitta.flyway_schema_history WHERE version IS NOT NULL"));}
+        try(var c=connect("emitta_readonly")){assertEquals(16,count(c,"SELECT count(DISTINCT version) FROM emitta.flyway_schema_history WHERE version IS NOT NULL"));}
     }
     @Test @Order(4) void databaseInterruptionFailsPromptlyAndRecoversOnSameDurableDatabase() throws Exception {
         // Pause only this disposable container. The public/private PostgreSQL service is never touched.
@@ -103,7 +103,7 @@ class PostgreSqlOperationalIntegrationTest {
         String url=POSTGRES.getJdbcUrl().replace("/"+POSTGRES.getDatabaseName(),"/synthetic_restore");
         try(var c=DriverManager.getConnection(url,"emitta_readonly",SYNTHETIC_PASSWORD)) {
             assertEquals(1,count(c,"SELECT count(*) FROM emitta.tenants"));
-            assertEquals(14,count(c,"SELECT count(*) FROM emitta.flyway_schema_history WHERE version IS NOT NULL"));
+            assertEquals(16,count(c,"SELECT count(*) FROM emitta.flyway_schema_history WHERE version IS NOT NULL"));
             assertEquals(0,count(c,"SELECT count(*) FROM emitta.processing_jobs"));
             assertEquals(0,count(c,"SELECT has_table_privilege('emitta_app','emitta.flyway_schema_history','UPDATE')::int"));
             assertEquals(0,count(c,"SELECT has_database_privilege('emitta_app','synthetic_restore','TEMP')::int"));

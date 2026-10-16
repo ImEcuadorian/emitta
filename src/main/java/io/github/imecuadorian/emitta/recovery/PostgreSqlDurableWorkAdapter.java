@@ -172,7 +172,8 @@ public class PostgreSqlDurableWorkAdapter implements DurableWorkPort {
      next_attempt_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
    WHERE j.id=? AND j.tenant_id=? AND j.state='DEAD' AND j.failure_category='TRANSIENT'
      AND EXISTS(SELECT 1 FROM emitta.documents d WHERE d.id=j.document_id AND d.tenant_id=j.tenant_id
-       AND ((j.kind='RIDE' AND d.status='AUTHORIZED') OR (j.kind='FISCAL' AND d.status IN ('QUEUED','GENERATING'))))
+       AND ((j.kind='RIDE' AND d.status='AUTHORIZED') OR (j.kind='FISCAL' AND d.status IN ('QUEUED','GENERATING'))
+         OR (j.kind='SRI_TEST' AND d.environment='TEST' AND d.status='SUBMITTED')))
    """,jobId,tenantId)==1;
  }
  @Override public boolean recoverAdmission(UUID tenantId,UUID documentId,UUID eventId) {

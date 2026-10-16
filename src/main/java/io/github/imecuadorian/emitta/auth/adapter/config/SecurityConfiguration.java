@@ -61,7 +61,7 @@ public class SecurityConfiguration {
 
                                         .requestMatchers(
                                                 HttpMethod.POST,
-                                                "/api/v1/auth/token"
+                                                "/api/v1/auth/token", "/api/v1/operator/token"
                                         )
                                         .permitAll()
 
@@ -81,6 +81,10 @@ public class SecurityConfiguration {
                                         .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                                 tenantAccess.allowsInvoice(authentication.get())))
 
+                                        .requestMatchers(HttpMethod.GET,"/api/v1/operator/overview")
+                                        .hasAuthority("SCOPE_platform:admin")
+                                        .requestMatchers(HttpMethod.POST,"/api/v1/operator/personal-access")
+                                        .hasAuthority("SCOPE_platform:admin")
                                         .requestMatchers(HttpMethod.POST,"/api/v1/fiscal-configuration")
                                         .access((authentication,context)->new org.springframework.security.authorization.AuthorizationDecision(tenantAccess.allowsFiscalConfiguration(authentication.get(),true)))
                                         .requestMatchers(HttpMethod.GET,"/api/v1/fiscal-configuration")

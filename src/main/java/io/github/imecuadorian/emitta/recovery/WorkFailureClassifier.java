@@ -3,6 +3,8 @@ public final class WorkFailureClassifier {
  public enum Category { TRANSIENT,VALIDATION,INTEGRITY,EXTERNAL_UNKNOWN,PERMANENT }
  public static Category classify(Throwable failure) {
   for(Throwable t=failure;t!=null;t=t.getCause()) {
+   if(t instanceof io.github.resilience4j.circuitbreaker.CallNotPermittedException
+       || t instanceof io.github.resilience4j.bulkhead.BulkheadFullException) return Category.TRANSIENT;
    if(t instanceof io.github.imecuadorian.emitta.srireception.application.exception.SriReceptionException) return Category.EXTERNAL_UNKNOWN;
    if(t instanceof io.github.imecuadorian.emitta.documentartifact.application.exception.DocumentArtifactIntegrityException
        || t instanceof io.github.imecuadorian.emitta.fiscalsigning.application.exception.XmlSignatureVerificationException) return Category.INTEGRITY;

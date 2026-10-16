@@ -3,7 +3,7 @@ import java.util.UUID;
 import java.util.Optional;
 import java.time.Instant;
 public interface DurableWorkPort {
- enum Kind { FISCAL,RIDE }
+ enum Kind { FISCAL,RIDE,SRI_TEST }
  record Job(UUID id,UUID tenantId,UUID documentId,Kind kind,String state,int attempts,UUID leaseToken,
             Instant nextAttemptAt,String failureCategory) {}
  void enqueue(Kind kind,UUID tenantId,UUID documentId);

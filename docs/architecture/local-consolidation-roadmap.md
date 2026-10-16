@@ -133,3 +133,19 @@ Certificado real importado por el operador; nueva factura TEST creada mediante R
 - Build satisfactorio: 376 pruebas aprobadas y una SRI live omitida; seis pruebas aisladas de almacenamiento adicionales. Web: doce páginas y 220 enlaces; tipado y flujo administrativo aprobados.
 - Descarga real del PDF autorizado existente comprobada desde el navegador y por SHA-256. No hubo nuevos comprobantes ni llamadas al SRI.
 - Pendientes: política del proveedor y preparación comercial/PRODUCCIÓN, login humano/MFA y habilitación operativa fiscal explícita. Automatismos apagados. Detalle en [alta fiscal y panel](../operations/fiscal-self-service-and-owner-panel.md).
+
+## 2026-10-14 — Entrada personal y recorrido REST integral
+
+Implementados localmente correo/contraseña sin MFA por elección del usuario, configuración privada y bloqueo de intentos; V16. Procesamiento TEST explícito preparado por V15 y ensayo REST con SOAP loopback hasta XML/PDF, incluyendo timeout sin retransmisión. Automatismos siguen apagados. Resultados finales y publicación deben comprobarse antes de declarar cierre. Véase [detalle operativo](../operations/personal-login-and-test-workflow.md).
+
+Cierre publicado: build 380 aprobados/una SRI live omitida y siete pruebas de almacenamiento aprobadas. Web verificada por HTTPS; V15/V16 sólo en staging con backup privado. Login correo/contraseña disponible sin MFA por elección del usuario; queda su entrada privada de contraseña. Ocho flags fiscales apagados, documento autorizado y artefactos intactos.
+
+
+### 2026-10-15 — Separación del panel del dueño y la API del cliente
+
+- Panel con vistas Clientes, detalle (Conexiones / Locales y certificado), Operación y Mi cuenta. Sin importación PKCS#12 ni consulta/descarga de facturas en el panel.
+- Nuevos accesos de cliente con perfil completo dentro de su tenant; se conservan perfiles restringidos y credenciales anteriores.
+- GET /api/v1/operator/overview exclusivo platform:admin: métricas de la instancia y 20 acciones administrativas sin contenido fiscal. No equivale a métricas globales multiinstancia ni a historial fiscal.
+- Documentación explica descubrimiento de puntos por código y documentId devuelto por creación. Secuencial inicial de migración sigue sin configuración REST; no resetear series existentes.
+- Los endpoints administrativos previos de documentos permanecen en backend por compatibilidad; retirar esa capacidad requiere una revisión del contrato, no queda eliminado por quitar la UI.
+- Pendiente: métricas agregadas por cliente, búsqueda global de clientes, edición de configuración fiscal existente y prueba visual autenticada móvil/escritorio.

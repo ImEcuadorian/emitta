@@ -44,7 +44,7 @@ public final class TrafficFilter extends OncePerRequestFilter {
   return new RedisTokenBucket.Bucket(dimension+"-"+endpoint,identity,properties.policy(dimension,endpoint));
  }
  public static String endpoint(String path) {
-  if(path.equals("/api/v1/auth/token"))return "authentication";
+  if((path.equals("/api/v1/auth/token") || path.equals("/api/v1/operator/token")))return "authentication";
   if(path.equals("/api/v1/invoices"))return "invoices";
   if(path.equals("/api/v1/fiscal-configuration") || path.startsWith("/api/v1/tenants/") && path.endsWith("/fiscal-configuration"))return "fiscal-configuration";
   if(path.startsWith("/api/v1/taxpayers/") && path.endsWith("/certificates"))return "certificates";

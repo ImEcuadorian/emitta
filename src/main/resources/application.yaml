@@ -215,6 +215,10 @@ emitta:
     enabled: ${EMITTA_SIGNING_ENABLED:false}
 
   sri:
+    automatic-test:
+      enabled: ${EMITTA_SRI_AUTOMATIC_TEST_ENABLED:false}
+      tenant-ids: ${EMITTA_SRI_AUTOMATIC_TEST_TENANT_IDS:}
+      not-before: ${EMITTA_SRI_AUTOMATIC_TEST_NOT_BEFORE:}
     resilience:
       reception:
         concurrent-calls: ${EMITTA_SRI_RECEPTION_CONCURRENCY:8}
