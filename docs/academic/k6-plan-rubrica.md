@@ -77,4 +77,4 @@ Guardar cada run con: fecha/hora, commit SHA, modo, VUs, perfiles y duración, h
 
 No publicar fixture.json, tokens ni logs completos; solo gráficas y tablas agregadas sin identidades.
 
-**Estado:** plan y perfiles propuestos; las cifras académicas todavía no están medidas hasta ejecutar esos ensayos.
+**Ejecución:** perfiles medidos el 16 de octubre; véanse [resultados y límites](resultados-carga.md). El intento anterior interrumpido se conserva como incompleto, no como aprobado.

@@ -2,9 +2,9 @@
 
 > **Proyecto académico en STAGING / SRI TEST.** La API es un servicio de integración para sistemas POS, ERP, SaaS y e-commerce. No es un POS, un ERP, un servicio comercial certificado ni un ambiente de emisión de PRODUCCIÓN.
 
-**Sitio web:** https://emitta.nexorf.dev  
-**API de pruebas:** https://api-emitta.nexorf.dev  
-**Documentación:** https://emitta.nexorf.dev/docs/  
+**Sitio web:** https://emitta.nexorf.dev
+**API de pruebas:** https://api-emitta.nexorf.dev
+**Documentación:** https://emitta.nexorf.dev/docs/
 **Repositorio de la web:** https://github.com/ImEcuadorian/emitta-web
 
 ## Entregables de la Universidad Politécnica Salesiana
@@ -56,8 +56,8 @@ Java 25 · Spring Boot 4.1.1 · Gradle Kotlin DSL · PostgreSQL 18/Flyway · Red
 ## Contrato OpenAPI
 
 - [OpenAPI 3.0.3 completo (administrativo y de integración)](src/main/resources/static/openapi/emitta-openapi.yaml).
-- [Referencia simplificada para integradores](https://github.com/ImEcuadorian/emitta-web/blob/codex/ride-consolidation/public/openapi/emitta-integration-v1.yaml).
-- En la rama de consolidación verificada: **17 rutas / 22 operaciones**, con OAuth2 Resource Server para validación JWT pero sin afirmar un Authorization Server OAuth2 completo.
+- [Referencia simplificada para integradores](https://github.com/ImEcuadorian/emitta-web/blob/main/public/openapi/emitta-integration-v1.yaml).
+- En la rama de consolidación verificada: **20 rutas / 25 operaciones**, con OAuth2 Resource Server para validación JWT pero sin afirmar un Authorization Server OAuth2 completo.
 - Todas las operaciones fiscales reales requieren credenciales, scopes y pertenencia al tenant.
 
 ## Ejecutar pruebas
@@ -89,8 +89,8 @@ JaCoCo genera build/reports/jacoco/test; los ensayos k6 agregan resultados local
 - No ejecutar k6 ni escáneres intrusivos contra el sitio público, la API staging, el SRI o la base privada del piloto.
 - [Matriz de evidencias y límites de la entrega](docs/academic/matriz-rubrica.md).
 
-## Estado de Git
+## Consolidación universitaria
 
-Esta rama académica toma como base la rama remota codex/ride-consolidation inspeccionada el 15-10-2026. Los cambios locales del operador posteriores al commit base deben revisarse y sincronizarse **sin sobrescribir trabajo, certificados ni secretos** antes del cierre definitivo de la asignatura.
+Los cambios locales y los entregables académicos se integran preservando el historial. La evidencia exacta de validación y publicación se encuentra en [el informe final](docs/academic/informe-final.md).
 
-**Autoría / proyecto:** NEXORF · Emitta.
+**Proyecto:** NEXORF · Emitta.

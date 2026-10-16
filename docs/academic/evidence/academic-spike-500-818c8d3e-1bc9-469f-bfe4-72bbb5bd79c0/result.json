@@ -1,0 +1,67 @@
+{
+  "run": "academic-spike-500-818c8d3e-1bc9-469f-bfe4-72bbb5bd79c0",
+  "http_reqs": {
+    "count": 15250,
+    "rate": 155.529352028798
+  },
+  "latency_ms": {
+    "p(50)": 2523.3501795,
+    "p(90)": 3439.9796357000005,
+    "p(95)": 3700.973439149999,
+    "p(99)": 4405.17393858,
+    "avg": 2117.958385027533,
+    "min": 69.825339,
+    "med": 2523.3501795,
+    "max": 6282.975643,
+    "thresholds": {
+      "p(95)<2000": true,
+      "p(99)<5000": false
+    }
+  },
+  "http_errors": {
+    "passes": 0,
+    "fails": 15250,
+    "thresholds": {
+      "rate<0.01": false
+    },
+    "value": 0
+  },
+  "checks": {
+    "passes": 15249,
+    "fails": 0,
+    "thresholds": {
+      "rate==1": false
+    },
+    "value": 1
+  },
+  "idempotency": {
+    "passes": 5083,
+    "fails": 0,
+    "thresholds": {
+      "rate==1": false
+    },
+    "value": 1
+  },
+  "accepted": {
+    "count": 5083,
+    "rate": 51.83971779425444
+  },
+  "invariants": {
+    "poolMax": 10,
+    "jvmAvailableProcessors": 12,
+    "sriCalls": 0,
+    "httpAcknowledged": 5083,
+    "scope": "REST admission only",
+    "k6ExitCode": 99,
+    "drained": true,
+    "documents": 5083,
+    "jobs": 5083,
+    "outboxPending": 0,
+    "events": 5083,
+    "peakPending": 192,
+    "peakHeapBytes": 299479224,
+    "notHttpAcknowledged": 0,
+    "peakActive": 10,
+    "drainSeconds": 5.186334
+  }
+}

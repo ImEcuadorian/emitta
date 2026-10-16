@@ -8,7 +8,7 @@
 
 **Mostrar:** portada https://emitta.nexorf.dev, problema del cliente, tabla de cadena de valor y modelo hipotético de monetización.
 
-**Pregunta probable:** "¿Qué tiene de innovador si hay APIs de facturación?"  
+**Pregunta probable:** "¿Qué tiene de innovador si hay APIs de facturación?"
 **Respuesta:** "No afirmo haber inventado una categoría. Evalúo una alternativa API-first con idempotencia, tenants, contrato claro y trazabilidad; la diferencia comercial aún requiere validación".
 
 ## Min 1:30–4:00 · Arquitectura (RA2)
@@ -17,7 +17,7 @@
 
 **Mostrar:** diagrama Mermaid C4 contenedores de [RA2](RA2-arquitectura.md); explicar Outbox/consumidor idempotente.
 
-**Pregunta probable:** "¿Por qué no microservicios?"  
+**Pregunta probable:** "¿Por qué no microservicios?"
 **Respuesta:** "Añaden transacciones distribuidas y más operaciones; elegí monolito modular mientras no exista presión medida para independizar módulos".
 
 ## Min 4:00–6:00 · Modelo y OpenAPI (RA3)
@@ -26,7 +26,7 @@
 
 **Mostrar:** [ERD de RA3](RA3-modelo-contrato.md), YAML/Scalar, GET/POST y schemas. Evitar abrir operaciones administrativas con secretos.
 
-**Pregunta probable:** "¿Qué pasa si envío dos veces la factura?"  
+**Pregunta probable:** "¿Qué pasa si envío dos veces la factura?"
 **Respuesta:** "Mismo Idempotency-Key y mismo contenido recupera el documento; una petición HTTP con timeout no implica que el commit no exista. Nunca creo una segunda clave para resolver una respuesta ambigua".
 
 ## Min 6:00–8:30 · API funcionando (RA4)
@@ -36,8 +36,8 @@
 2. Mostrar /actuator/health con respuesta sana sin detalles internos, si responde públicamente.
 3. Entrar a la administración usando **las credenciales solo en el teclado, fuera de capturas/grabación**; seleccionar cuenta de prueba existente.
 4. Mostrar configuración de emisor y punto; no revelar certificado ni contraseña.
-5. Consultar el comprobante TEST ya autorizado, mostrando solo estado AUTHORIZED y metadatos no privados.
-6. Descargar XML autorizado y RIDE bajo autenticación si está disponible para esa cuenta; verificar hashes **sin publicar los archivos fiscales privados**.
+5. Desde una sesión de la aplicación cliente por API (separada del panel del dueño), consultar el comprobante TEST ya autorizado; mostrar sólo estado AUTHORIZED y metadatos no privados.
+6. Descargar XML autorizado y RIDE por los endpoints de artefactos, con el token del cliente; verificar hashes **sin publicar los archivos fiscales privados**.
 7. Explicar HTTP 202 vs AUTHORIZED; procesamiento automático apagado.
 
 **Plan de contingencia:** guardar capturas autorizadas de web/Scalar, diagrama y terminal sin secretos. Nunca fabricar AUTHORIZED ni emitir documentos con credenciales de un tercero.
@@ -46,10 +46,10 @@
 
 **Discurso:** "Ejecuté pruebas Java y Testcontainers y analicé dos intensidades k6. Con 100 VUs/10 min en entorno sintético obtuve 54.535 documentos durables, 90,47 documentos/s y 0 % error HTTP, p95 de 651 ms. En 200 VUs se incumplieron latencia y algunas verificaciones; ese límite es parte de mi análisis. El SRI y firma están apagados en esta carga, por lo que no presento estas cifras como autorizaciones por segundo".
 
-**Mostrar:** tabla B 100/200, gráfica p95 y métricas. Presentar evidencia nueva de ramp-up, spike y JaCoCo **solo si ya se ejecutó y existe**.
+**Mostrar:** tabla de [resultados académicos](resultados-carga.md), JaCoCo y comparación histórica B 100/200. Señalar el fallo de latencia del spike 500 y la conservación de todos los documentos.
 
-**Pregunta probable:** "¿Por qué no llegaste al ideal p95 de 500 ms?"  
-**Respuesta:** "Porque el test medido tuvo p95 de 651 ms con 100 VUs. Comparo contra el ideal honestamente; es una API que confirma durabilidad, y se pueden revisar rutas lentas y pool, sin falsear resultados".
+**Pregunta probable:** "¿Por qué no llegaste al ideal p95 de 500 ms?"
+**Respuesta:** "Porque el perfil académico tuvo p95 de 786 ms con 100 VUs. Comparo contra el ideal honestamente; es una API que confirma durabilidad, y se pueden revisar rutas lentas y pool, sin falsear resultados".
 
 ## Min 10:30–12:00 · Cierre
 

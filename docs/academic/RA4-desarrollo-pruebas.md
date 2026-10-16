@@ -4,8 +4,8 @@
 
 La solución implementada utiliza Java 25, Spring Boot 4.1.1, PostgreSQL 18, Redis 8, RabbitMQ 4, almacenamiento S3 compatible, firma DSS/XAdES, OpenAPI, Testcontainers, k6 y Docker. La web pública se implementa con Astro, Starlight y Scalar y se entrega como sitio estático.
 
-**Código fuente:** [Emitta backend](https://github.com/ImEcuadorian/emitta/tree/codex/ride-consolidation) y [Emitta Web](https://github.com/ImEcuadorian/emitta-web/tree/codex/ride-consolidation).  
-**Despliegue staging reportado:** https://emitta.nexorf.dev y https://api-emitta.nexorf.dev. El despliegue se documenta en [emitta-publication.md](../operations/emitta-publication.md); capturas/HTTP actuales deben generarse desde el entorno del responsable.
+**Código fuente:** [Emitta backend](https://github.com/ImEcuadorian/emitta/tree/main) y [Emitta Web](https://github.com/ImEcuadorian/emitta-web/tree/main).
+**Despliegue staging reportado:** https://emitta.nexorf.dev y https://api-emitta.nexorf.dev. El despliegue se documenta en [emitta-publication.md](../operations/emitta-publication.md); las capturas HTTPS de documentación y Scalar están en [evidence/](evidence/README.md).
 
 ## 2. Seguridad
 
@@ -25,9 +25,7 @@ Se reportaron pruebas de aislamiento, revocación de cliente, fallos, duplicados
 
 ## 3. Calidad: pruebas automatizadas
 
-El informe de consolidación local 11-10-2026 registra **358 pruebas aprobadas y una SRI live omitida** (352 de suite general + 6 de MinIO aislado). El informe posterior de publicación staging registra **359 aprobadas y una live omitida** en su suite general, más comprobaciones focalizadas (no sumarlas como únicas).
-
-El reporte del 14-10-2026 describe nuevas suites tras V15/V16; estas modificaciones no constan completas en el snapshot remoto base examinado. **Antes de entregar, correr pruebas sobre el commit final y reportar el total exacto de esa ejecución.** El examen de GitHub no sustituye un build ejecutado.
+La suite integrada se ejecutó con `build jacocoTestReport`: **381 aprobadas, 0 fallos y 1 prueba SRI live omitida** (382 casos). La compilación y el build finalizaron correctamente. Las 7 integraciones S3 pasaron en ejecución separada con MinIO desechable (incluye recorrido REST hasta XML/PDF); los perfiles k6 se reportan aparte. [Evidencia S3](evidence/storage-summary.json).
 
 Módulos cubiertos: invoice/idempotency, JWT/tenant/scopes, Redis, RabbitMQ, recuperación, XML/XSD, firma, S3/MinIO, RIDE y errores SOAP.
 
@@ -42,7 +40,7 @@ Docker debe estar activo; los tests son aislados. El test SriSoapAuthorizationLi
 
 ## 4. Cobertura de código
 
-La rúbrica requiere evidencia de pruebas unitarias. **El porcentaje de cobertura no está documentado todavía**. Se añadió la preparación para reporte JaCoCo de JDK 25 en el branch académico, pero el HTML/XML y su porcentaje solo existen después de ejecutar la tarea.
+JaCoCo 0.8.15 registró **80,91 % de instrucciones, 59,70 % de ramas y 82,70 % de líneas** en la suite normal integrada. Véase [evidence/coverage.json](evidence/coverage.json). Los procesos hijos y la tarea S3 independiente no se agregan a estos porcentajes.
 
 ~~~powershell
 .\gradlew.bat test jacocoTestReport --console=plain
@@ -85,22 +83,15 @@ xychart-beta
 
 Estos ensayos se obtuvieron en condiciones y fechas distintas; la ejecución tiene variabilidad. No usar un p95 de 651 ms como si cumpliera el ideal de 500 ms de la rúbrica.
 
-## 6. Ajuste necesario a los escenarios del docente
+## 6. Escenarios académicos ejecutados
 
-| Requisito del docente | Evidencia disponible | Acción final |
-| --- | --- | --- |
-| Ramp-up 2–3 min, 100–200 VUs | Actual: constant-vus | Ejecutar perfil academic-sustained nuevo |
-| Meseta 5–10 min | 100 VUs 10 min validado | Mantener 5–10 min |
-| Ramp-down 1–2 min | No existe en sostenido anterior | Incorporado al perfil académico; ejecutar |
-| Spike 5–10× y 500 VUs | Pico de 500 hecho | Mantener 500 y documentar baseline |
-| Spike sostenido 1–2 min | Viejo plateau 30 s | Ejecutar nuevo perfil academic-spike |
-| RPS, promedio, p90, p95, p99 | Informes contienen docs/s, p95/p99 | Exportar http_reqs y Trend completo del nuevo ensayo |
-| Error rate <1 % sostenido | 0 % en B 100; 200 falla otras métricas | Reportar por escenario sin ocultar fallas |
-| Punto de ruptura | 100 pasa, 200 falla | Intervalo observado (100,200]; localizar mejor con 125/150/175 si se requiere exactitud |
+El 16 de octubre se ejecutaron los perfiles de la rúbrica en infraestructura sintética. El sostenido utiliza 2 minutos de subida, 5 de meseta a 100 VUs y 1 de bajada; el spike utiliza referencia de 50 VUs y pico de 500 durante un minuto. Los resultados, incluidos fallos, se conservan en [resultados-carga.md](resultados-carga.md), con RPS, media, percentiles, errores, CPU, memoria, Hikari y drenaje.
 
-La métrica p95 <500 ms se describe como ideal para endpoints síncronos estándar. Un contrato asíncrono puede tener una latencia diferente, pero **eso no elimina el requisito de explicar por qué se supera el ideal**.
+El sostenido aceptó 26.382 documentos (54,69/s), con p95 de 785,50 ms, p99 de 1.023,15 ms, 0 % de errores HTTP y 100 % de idempotencia. Drenó en 4,17 s. Cumple los umbrales técnicos; **no cumple el ideal académico p95 <500 ms**. La adquisición de conexiones promedió 102,30 ms y alcanzó 84 solicitantes pendientes: existe contención bajo concurrencia. No se aumentó el pool ni se relajaron umbrales para aprobar.
 
-Los perfiles nuevos se limitan a infraestructura Testcontainers sintética (nunca una URL arbitraria), preservan el rate limiter de pruebas y mantienen OFF los puertos fiscales.
+La tarea está instrumentada con JaCoCo y comparte recursos del portátil con Docker Desktop. Por ello no se atribuyen causalmente las diferencias con los ensayos históricos sólo al código. Los jobs fiscales permanecen pendientes por diseño: el drenaje verifica publicación y admisión durable, no ejecución fiscal.
+
+El spike de 500 VUs **falló el umbral p95<2000 ms**: registró p95 3.700,97 ms y p99 4.405,17 ms; k6 terminó con código 99. Conservó 5.083 documentos/eventos/jobs, cero errores HTTP, 100 % de checks e idempotencia y drenaje en 5,19 s. Hikari llegó a 192 solicitantes pendientes. No se observaron pérdidas, pero no se acredita soporte de 500 usuarios con la latencia requerida.
 
 ## 7. Despliegue Docker
 
@@ -119,7 +110,7 @@ No adjuntar salida de variables de entorno, P12, tokens, XML de contribuyentes, 
 
 ## 8. Pipeline DevOps
 
-La automatización GitHub Actions para **validar builds y cobertura** puede añadirse a esta rama; el job debe ejecutarse y quedar verde antes de atribuir CI exitoso. Docker/Testcontainers necesita runner compatible.
+GitHub Actions ejecuta Java 25, build, Testcontainers y JaCoCo con SRI live desactivado. La integración del backend pasó en [run 38844921951](https://github.com/ImEcuadorian/emitta/actions/runs/38844921951); la web en main pasó en [run 38894598765](https://github.com/ImEcuadorian/emitta-web/actions/runs/38894598765). Los artefactos de cobertura de CI tienen retención limitada; los contadores agregados quedan versionados en evidence/.
 
 Desplegar staging desde CI de forma automática no es obligatorio para acreditar **despliegue contenedorizado** si ya existe evidencia de Compose ejecutándose. Un pipeline de prueba y un despliegue real verificado pueden presentarse por separado; no inventar automatización de releases.
 

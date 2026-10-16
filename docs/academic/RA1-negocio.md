@@ -2,8 +2,8 @@
 
 ## 1. Resumen ejecutivo
 
-**Nombre:** Emitta (iniciativa tecnológica de NEXORF).  
-**Naturaleza:** Plataforma B2B de API REST para integrar facturación electrónica ecuatoriana con software existente.  
+**Nombre:** Emitta (iniciativa tecnológica de NEXORF).
+**Naturaleza:** Plataforma B2B de API REST para integrar facturación electrónica ecuatoriana con software existente.
 **Etapa actual:** Desarrollo y staging académico; sin comercialización ni habilitación fiscal automática de producción.
 
 **Propuesta de valor:** permitir que un proveedor de software POS, ERP, e-commerce o SaaS incorpore emisión electrónica sin implementar individualmente toda la lógica de validación del comprobante, firma digital, comunicación con el SRI, trazabilidad, reintentos seguros y almacenamiento de artefactos. La integración se realiza mediante JSON/HTTPS con autenticación y consulta posterior de estado.

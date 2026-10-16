@@ -1,0 +1,17 @@
+{"timestamp":"2026-10-16T20:27:41.882202Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":0},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:27:50.166481800Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":13},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:27:58.606200200Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":14},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:06.521651800Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":4},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:14.683835500Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":11},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:22.668227100Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":0},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:30.808838900Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":24},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:38.775991Z","queues":[{"queue":"emitta.fiscal.documents","ready":20,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:46.671160Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:28:54.459396Z","queues":[{"queue":"emitta.fiscal.documents","ready":11,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:02.222831800Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":24},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:10.235257400Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":25},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:16.160807900Z","queues":[{"queue":"emitta.fiscal.documents","ready":15,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:17.197308900Z","queues":[{"queue":"emitta.fiscal.documents","ready":15,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:18.224243400Z","queues":[{"queue":"emitta.fiscal.documents","ready":15,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:19.251537Z","queues":[{"queue":"emitta.fiscal.documents","ready":15,"unacked":50},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}
+{"timestamp":"2026-10-16T20:29:20.279710600Z","queues":[{"queue":"emitta.fiscal.documents","ready":0,"unacked":0},{"queue":"emitta.processing.dlq","ready":0,"unacked":0}]}

@@ -1,0 +1,842 @@
+{
+  "totals": {
+    "tests": 382,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "suites": [
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.integration.FiscalProcessingEndToEndIntegrationTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "18.038"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoicexml.application.service.GenerateAndStoreInvoiceXmlServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.394"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.adapter.in.web.CertificateAdministrationControllerTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.763"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.adapter.out.persistence.PostgreSqlSigningKeyMaterialAdapterIntegrationTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "15.59"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentartifact.application.service.LoadDocumentArtifactServiceTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.419"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.adapter.out.persistence.PostgreSqlSriReceptionAttemptAdapterIntegrationTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "4.105"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.service.QueryDocumentAuthorizationServiceTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.258"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.application.service.SignAndFinalizeFiscalDocumentServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.272"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.service.StoreAuthorizedDocumentXmlServiceTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.035"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.adapter.config.SriAuthorizationWorkflowConfigurationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.744"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.establishment.adapter.out.persistence.EstablishmentPersistenceAdapterTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "6.391"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.pointofissue.adapter.out.persistence.PointOfIssuePersistenceAdapterTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.968"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.adapter.config.ManualTestTransmissionConfigurationTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.005"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.service.MarkDocumentAuthorizedServiceTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.027"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoicexml.adapter.out.persistence.PostgreSqlInvoiceXmlSourceAdapterIntegrationTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.657"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.adapter.config.ManualTestPreparationConfigurationTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.006"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.application.service.SubmitSignedDocumentToSriServiceTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.014"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.application.service.SubmitFiscalDocumentToSriServiceTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.016"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.application.service.ProcessFiscalDocumentServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.089"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentartifact.application.service.StoreDocumentArtifactServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.019"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.adapter.orchestration.GenerateInvoiceXmlAfterFiscalProcessingUseCaseTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.187"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentsequence.adapter.out.persistence.PostgreSqlSequenceAllocationAdapterTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "4.493"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.adapter.orchestration.SignAfterInvoiceXmlGenerationUseCaseTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.091"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.document.adapter.transaction.TransactionalCreateDocumentUseCaseIntegrationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "6.362"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.service.ReconcileDocumentAuthorizationServiceTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.064"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentartifact.adapter.out.persistence.PostgreSqlDocumentArtifactRepositoryAdapterIntegrationTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "3.533"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.adapter.out.persistence.PostgreSqlSriAuthorizationEvidenceAdapterIntegrationTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.276"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.accesskey.adapter.out.random.SecureRandomNumericCodeGeneratorTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.074"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.accesskey.application.service.GenerateAccessKeyServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.06"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.accesskey.domain.AccessKeyGeneratorTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.accesskey.domain.AccessKeyTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.008"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.accesskey.domain.Modulus11Test",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.auth.integration.SecurityIntegrationTest",
+      "tests": "15",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "52.689"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.document.adapter.out.persistence.DocumentPersistenceAdapterTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "6.517"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.document.application.service.CreateDocumentServiceTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.222"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.document.domain.DocumentTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.007"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.document.domain.IdempotencyKeyTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentartifact.domain.DocumentArtifactTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.007"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentsequence.application.service.AllocateSequentialServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.22"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentsequence.domain.DocumentSequenceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.005"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.documentsequence.domain.SequentialNumberTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.004"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.establishment.adapter.in.web.EstablishmentControllerTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.995"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.establishment.application.service.CreateEstablishmentServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.217"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.establishment.domain.EstablishmentCodeTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.establishment.domain.EstablishmentTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalprocessing.adapter.in.messaging.FiscalDocumentListenerTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.198"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.adapter.out.crypto.AesGcmSecretCipherTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.008"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.adapter.out.crypto.Pkcs12CertificateValidatorTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "10.353"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.adapter.out.dss.DssXadesBesXmlSignerTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.054"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.application.service.MarkDocumentSignedServiceTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.298"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.fiscalsigning.application.service.SignFiscalDocumentServiceTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.34"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoice.adapter.in.web.InvoiceBackpressureResponseTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.001"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoice.adapter.in.web.InvoiceControllerTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.51"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoice.application.service.CreateInvoiceServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.34"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoice.domain.InvoiceTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.007"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoice.integration.CreateInvoiceIntegrationTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "26.918"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoicexml.adapter.config.ProviderPolicyConfigurationTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.12"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoicexml.adapter.out.xml.SriInvoiceXmlGeneratorTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.11"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoicexml.adapter.out.xml.SriInvoiceXsdValidatorTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.031"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.invoicexml.application.service.GenerateInvoiceXmlServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.264"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.adapter.config.CorrelatedOutboxBatchTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.653"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.adapter.config.OutboxAdmissionGuardTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.452"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.adapter.config.OutboxLeasePolicyTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.218"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.adapter.config.RabbitAdmissionRetryTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.248"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.adapter.in.scheduling.OutboxPublisherSchedulerTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.182"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.adapter.out.persistence.PostgreSqlOutboxEventAdapterTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "7.091"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.application.service.PublishPendingOutboxServiceTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.015"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.outbox.integration.OutboxPublisherIntegrationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "19.809"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.pointofissue.adapter.in.web.PointOfIssueControllerTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.398"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.pointofissue.application.service.CreatePointOfIssueServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.265"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.pointofissue.domain.PointOfIssueCodeTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.pointofissue.domain.PointOfIssueTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.ratelimit.RateLimitHttpIntegrationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "23.785"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.ratelimit.RedisTokenBucketIntegrationTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.464"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.ratelimit.TrustedClientAddressTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.004"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.recovery.DurableRecoveryIntegrationTest",
+      "tests": "20",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "176.126"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.recovery.DurableWorkAdmissionTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.296"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.recovery.OperationalMetricsTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.272"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.recovery.PostgreSqlOperationalIntegrationTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "7.706"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.recovery.RecoveryCommandConfigurationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.241"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.recovery.SriTestWorkflowTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.336"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.ride.adapter.out.pdf.PdfBoxInvoiceRideGeneratorTest",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "4.799"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.shared.ManualTestXmlScopeTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.013"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.shared.resilience.SriCallGuardTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "3.183"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.shared.resilience.SriSoapBodyHandlersTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.138"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.adapter.out.soap.SriSoapAuthorizationAdapterTest",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.363"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.adapter.out.soap.SriSoapAuthorizationLiveTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "1",
+      "time": "0.01"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.model.SriAuthorizationEvidenceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.009"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.model.SriAuthorizationModelsTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.007"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.sriauthorization.application.service.VerifyAuthorizedXmlServiceTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.008"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.adapter.config.ProviderSubmissionConfigurationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.216"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.adapter.out.soap.SriSoapReceptionAdapterTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.092"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.application.model.SriReceptionModelTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.application.service.MarkDocumentSubmittedServiceTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.01"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.srireception.application.service.ProviderSubmissionGuardTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.011"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.taxpayer.adapter.in.web.TaxpayerControllerTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.288"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.taxpayer.adapter.out.persistence.TaxpayerPersistenceAdapterTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "6.378"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.taxpayer.application.service.CreateTaxpayerServiceTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.292"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.taxpayer.domain.RucTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.taxpayer.domain.TaxpayerTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.tenant.adapter.in.web.TenantControllerTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.937"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.tenant.adapter.out.persistence.TenantPersistenceAdapterTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "5.967"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.tenant.application.service.CreateTenantServiceTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.001"
+    },
+    {
+      "name": "io.github.imecuadorian.emitta.tenant.domain.TenantTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.003"
+    }
+  ]
+}

@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.*;
     "emitta.fiscal.provider-policy.profiles.external-test.justification=Synthetic loopback test only",
     "emitta.fiscal.provider-policy.profiles.external-test.normative-reference=https://www.sri.gob.ec/facturacion-electronica",
     "emitta.fiscal.provider-policy.profiles.external-test.evidence-path=src/test/resources/fiscal/provider-policy-test-evidence.txt",
-    "emitta.fiscal.provider-policy.profiles.external-test.evidence-sha256=af040e9d52eaa1545b50ade55f5c3752450a036235850fd7dd17c643d258f53a"
+    "emitta.fiscal.provider-policy.profiles.external-test.evidence-sha256=511375276ef85f7cce42260d89a10a30bbfa1c12f6a4cf93c4b3a55aa781c821"
 })
 @Testcontainers @Tag("object-storage-integration") @DirtiesContext
 class ClientRestFiscalJourneyIntegrationTest {

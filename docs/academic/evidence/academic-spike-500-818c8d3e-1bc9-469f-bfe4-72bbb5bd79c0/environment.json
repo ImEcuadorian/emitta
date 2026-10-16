@@ -1,0 +1,1 @@
+{"rabbitImage":"rabbitmq:4-management-alpine","testJvmMaxHeapBytes":1073741824,"k6Image":"grafana/k6:1.7.1","k6MemoryLimitBytes":536870912,"k6CpuLimit":2,"java":"25+37-LTS-3491","hostMemoryBytes":34265485312,"postgresImage":"postgres:18","redisImage":"redis:8-alpine","hostLogicalProcessors":12}

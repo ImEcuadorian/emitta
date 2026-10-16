@@ -137,9 +137,9 @@ Si recepción devuelve timeout o resultado externo desconocido, **no debe retran
 
 ## 9. Decisiones tecnológicas que no se adoptaron
 
-**Microservicios desde el inicio:** elevarían redes, consistencia, despliegue y depuración sin un límite de escala medido que lo justifique. Se eligió un único backend modular.  
-**Gateway independiente:** Cloudflare/Tunnel realizan ingreso y protección perimetral; el gateway con funciones de negocio no es requisito del MVP.  
-**BFF separado:** el frontend Astro actual consume servicios protegidos; no se añadió una capa intermedia únicamente por moda. Para sesiones humanas o secretos de navegador deberá revisarse un BFF de seguridad si se requiere.  
+**Microservicios desde el inicio:** elevarían redes, consistencia, despliegue y depuración sin un límite de escala medido que lo justifique. Se eligió un único backend modular.
+**Gateway independiente:** Cloudflare/Tunnel realizan ingreso y protección perimetral; el gateway con funciones de negocio no es requisito del MVP.
+**BFF separado:** el frontend Astro actual consume servicios protegidos; no se añadió una capa intermedia únicamente por moda. Para sesiones humanas o secretos de navegador deberá revisarse un BFF de seguridad si se requiere.
 **Kafka:** RabbitMQ resuelve el flujo de trabajo y confirmaciones; no se necesita replay de flujos analíticos a gran escala para RA2.
 
 ## 10. Evaluación crítica de la arquitectura

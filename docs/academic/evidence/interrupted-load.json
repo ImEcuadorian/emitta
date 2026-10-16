@@ -1,0 +1,7 @@
+{
+  "run": "academic-sustained-100-28b05777-84ff-42e7-98bc-5db37229ff3c",
+  "result": "incomplete",
+  "summaryAvailable": false,
+  "invariantsAvailable": false,
+  "observation": "k6 elapsed jumps from 1m06.9s to 46m31.0s while scenario advances by one second; Docker unavailable when resuming. No success claimed."
+}

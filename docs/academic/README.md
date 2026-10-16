@@ -2,7 +2,7 @@
 
 **Universidad Politécnica Salesiana · Octubre de 2026**
 
-Este directorio organiza los entregables del proyecto de APIs según los resultados de aprendizaje solicitados. Se basa en la rama codex/ride-consolidation y los informes de ensayos aportados por el responsable.
+Este directorio organiza los entregables del proyecto de APIs según los resultados de aprendizaje solicitados. Integra la implementación local reciente y los entregables académicos, conservando su historial.
 
 | Resultado | Entregable | Fecha de la rúbrica | Archivo |
 | --- | --- | --- | --- |
@@ -11,16 +11,19 @@ Este directorio organiza los entregables del proyecto de APIs según los resulta
 | RA3 / U3 | ERD y especificación OpenAPI | 23-10-2026 | [RA3-modelo-contrato.md](RA3-modelo-contrato.md) |
 | RA4 / U4 | Código, seguridad, pruebas, carga, contenedores | 29-10-2026 | [RA4-desarrollo-pruebas.md](RA4-desarrollo-pruebas.md) |
 
+Documento principal: [Informe académico consolidado](informe-final.md).
+
 Archivos adicionales:
 - [Matriz de rúbrica y evidencias](matriz-rubrica.md): distingue verificaciones documentadas de acciones aún pendientes.
 - [Guion de presentación](guion-exposicion.md): demostración reproducible sin emitir otra factura al SRI.
 - [Perfil de pruebas exigido](k6-plan-rubrica.md): ramp-up/meseta/ramp-down/spike y plan de medición.
-- [Cierre de publicación y evidencias](cierre-publicacion.md): comandos seguros para sincronizar cambios locales y completar RA4.
+- [Resultados de carga](resultados-carga.md): mediciones académicas y límites observados.
+- [Cierre de publicación y evidencias](cierre-publicacion.md): plan histórico conservado; el informe final contiene el estado vigente.
 
 ## Evidencias principales del repositorio
 
 - [Contrato OpenAPI completo](../../src/main/resources/static/openapi/emitta-openapi.yaml).
-- [ERD conceptual original](../domain/erd.md); debe contrastarse con las migraciones efectivas V1–V14 de esta rama.
+- [ERD conceptual original](../domain/erd.md); debe contrastarse con las migraciones efectivas V1–V16 de la versión integrada.
 - [Decisiones arquitectónicas (ADR)](../architecture/adr/README.md).
 - [Ensayos de carga y límites](../operations/admission-capacity-stage5.md).
 - [Scripts de carga reproducibles](../../scripts/Test-OperationalLoad.ps1).
@@ -37,7 +40,7 @@ Archivos adicionales:
 - El escenario de 100 VUs validado no demuestra 200 VUs ni un SLA; el de 200 VUs falló umbrales.
 - Los porcentajes de JaCoCo y las pruebas específicas de la rúbrica solo se presentan como resultados cuando se ejecuten.
 - La base de staging y los datos del piloto NO deben publicarse, exportarse ni alterarse para preparar este trabajo.
-- Los nuevos documentos en esta rama no significan que el trabajo local más reciente del 15 de octubre ya esté publicado.
+- La publicación final debe identificarse con SHA y CI comprobados.
 
 ## Checklist de entrega
 
@@ -45,11 +48,11 @@ Archivos adicionales:
 - [x] Diagramas Mermaid que pueden renderizarse en GitHub.
 - [x] Inventario del modelo y contratos enlazados.
 - [x] Evidencias existentes de seguridad, integración y carga documentadas.
-- [ ] Confirmar últimos cambios locales y sincronizarlos sin pisar archivos.
-- [ ] Medir cobertura real con JaCoCo y adjuntar HTML/XML de ejecución.
-- [ ] Ejecutar escenarios académicos 100–200 VUs con rampa y spike de 1–2 min **solo en Testcontainers**.
-- [ ] Capturar evidencias HTTPS/web autenticada de la versión efectivamente desplegada.
-- [ ] Añadir evidencia de CI ejecutado; no basta crear un workflow.
+- [x] Integrar los últimos cambios locales con respaldo Git previo y sin descartarlos.
+- [x] Medir cobertura JaCoCo; conservar contadores en Git y HTML/XML local y en CI.
+- [x] Ejecutar sostenido 100 VUs con rampa y spike 500 VUs de 1 min en Testcontainers; reportar fallos sin atribuir capacidad 200/500.
+- [x] Capturar documentación y Scalar HTTPS; verificar API con sesión nueva y descargas existentes. La captura de login no acredita navegación autenticada completa.
+- [x] Conservar enlaces a ejecuciones CI verdes de backend y web.
 - [ ] Confirmar que RA1 pueda entregarse fuera de plazo.
 
 La calificación depende de la rúbrica y la evaluación docente; este repositorio no garantiza una nota específica.

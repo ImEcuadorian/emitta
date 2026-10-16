@@ -1,0 +1,42 @@
+[
+  {
+    "name": "io.github.imecuadorian.emitta.sriauthorization.integration.SriAuthorizationWorkflowIntegrationTest",
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-10-16T20:34:23.276Z"
+  },
+  {
+    "name": "io.github.imecuadorian.emitta.documentartifact.adapter.out.storage.S3DocumentArtifactStorageAdapterIntegrationTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-10-16T20:34:19.593Z"
+  },
+  {
+    "name": "io.github.imecuadorian.emitta.fiscalprocessing.integration.FiscalProcessingArtifactEndToEndIntegrationTest",
+    "tests": "2",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-10-16T20:33:48.144Z"
+  },
+  {
+    "name": "io.github.imecuadorian.emitta.fiscalprocessing.integration.ClientRestFiscalJourneyIntegrationTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-10-16T20:32:54.103Z"
+  },
+  {
+    "name": "io.github.imecuadorian.emitta.invoicexml.integration.InvoiceXmlArtifactIntegrationTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "timestamp": "2026-10-16T20:34:19.686Z"
+  }
+]

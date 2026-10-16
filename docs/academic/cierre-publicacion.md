@@ -1,3 +1,5 @@
+> Documento histórico de preparación de la rama académica. Sus referencias al estado remoto anterior no describen el cierre actual. Para la versión integrada consulte el [informe final](informe-final.md). Se conserva como trazabilidad del proceso.
+
 # Cierre de GitHub y evidencia final para la UPS
 
 ## Dónde está cada trabajo

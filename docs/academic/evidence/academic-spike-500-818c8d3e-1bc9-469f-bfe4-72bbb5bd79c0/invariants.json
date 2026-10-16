@@ -1,0 +1,1 @@
+{"poolMax":10,"jvmAvailableProcessors":12,"sriCalls":0,"httpAcknowledged":5083,"scope":"REST admission only","k6ExitCode":99,"drained":true,"documents":5083,"jobs":5083,"outboxPending":0,"events":5083,"peakPending":192,"peakHeapBytes":299479224,"notHttpAcknowledged":0,"peakActive":10,"drainSeconds":5.186334}
